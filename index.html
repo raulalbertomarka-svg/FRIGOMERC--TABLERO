@@ -222,8 +222,6 @@ tbody tr:hover{background:var(--gray-50)}
 
     <div class="nav-section">Operaciones</div>
     <button class="nav-item" onclick="sw('pedidos')" id="nav-pedidos"><span class="ni">📦</span> PEDIDOS</button>
-    <button class="nav-item" onclick="sw('locales')" id="nav-locales"><span class="ni">📍</span> LOCALES</button>
-    <button class="nav-item" onclick="sw('respuestas')" id="nav-respuestas"><span class="ni">📋</span> RESPUESTAS</button>
   </div>
   <div class="sidebar-footer">
     <strong id="sf-status">Cargando...</strong>
@@ -284,42 +282,55 @@ tbody tr:hover{background:var(--gray-50)}
     <!-- ══ RESUMEN ══ -->
     <div class="pane active" id="pane-resumen">
       <div class="kpi-grid" id="kpiGrid"></div>
-      <div class="grid12 mb16">
-        <div class="card">
-          <div class="card-header">
-            <div><div class="card-title"><span>💰</span> Precio Promedio por Corte</div><div class="card-sub">Minerva vs Competencia · Gs.</div></div>
+
+      <!-- Gráfico precio + filtro de marcas -->
+      <div class="card mb16">
+        <div class="card-header">
+          <div><div class="card-title"><span>💰</span> Precio Promedio por Corte · Minerva vs Competencia</div><div class="card-sub">Seleccioná las marcas a comparar · Gs. promedio</div></div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <select id="fMarcaChart" multiple onchange="renderPreciosChart(filtered)"
+              style="font-size:11px;padding:4px 8px;border-radius:7px;border:1px solid var(--gray-200);background:var(--gray-50);min-width:180px;max-height:80px">
+            </select>
             <div class="mini-tabs">
-              <button class="mini-tab active" onclick="setChartMode('bar')" id="tabBar">Barras</button>
+              <button class="mini-tab active" onclick="setChartMode('bar')" id="tabBar">Todos</button>
               <button class="mini-tab" onclick="setChartMode('top')" id="tabTop">Top 8</button>
             </div>
           </div>
-          <div class="card-body"><div class="chw chw-300"><canvas id="chPrecios"></canvas></div></div>
         </div>
+        <div class="card-body"><div class="chw chw-300"><canvas id="chPrecios"></canvas></div></div>
+      </div>
+
+      <div class="grid2 mb16">
+        <!-- Diferencial -->
         <div class="card">
           <div class="card-header"><div><div class="card-title"><span>⚖️</span> Diferencial de Precio</div></div></div>
           <div class="card-body" id="difPanel"></div>
         </div>
-      </div>
-      <div class="grid2 mb16">
+        <!-- Top cortes -->
         <div class="card">
-          <div class="card-header"><div class="card-title"><span>📦</span> Top 10 Cortes por Precio Promedio</div></div>
+          <div class="card-header"><div class="card-title"><span>📦</span> Top Cortes por Precio Promedio</div></div>
           <div class="card-body np"><div class="tbl-wrap"><table>
-            <thead><tr><th>CORTE</th><th>MINERVA Gs.</th><th>COMP. Gs.</th><th>DIF %</th><th>REGISTROS</th></tr></thead>
+            <thead><tr><th>CORTE</th><th>MINERVA Gs.</th><th>COMP. Gs.</th><th>DIF %</th><th>REGS.</th></tr></thead>
             <tbody id="tblTopCortes"></tbody>
           </table></div></div>
         </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title"><span>🏪</span> Locales – Precios por Cadena</div></div>
-          <div class="card-body np">
-            <div style="padding:10px 14px">
-              <select id="cadenaCorteSel" onchange="renderPreciosPorCadena()" style="font-size:12px;padding:5px 8px;border-radius:7px;border:1px solid var(--gray-200);background:var(--gray-50);width:100%"><option value="">Todos los cortes</option></select>
-            </div>
-            <div class="tbl-wrap"><table>
-              <thead><tr><th>CADENA</th><th>PDV</th><th>MINERVA</th><th>COMP.</th><th>DIF %</th><th>ESTADO</th></tr></thead>
-              <tbody id="tblCadenaPrecio"></tbody>
-            </table></div>
-          </div>
+      </div>
+
+      <!-- Cobertura por categoría en resumen -->
+      <div class="card mb16">
+        <div class="card-header"><div><div class="card-title"><span>🚦</span> Cobertura por Categoría</div><div class="card-sub">Locales con Minerva vs universo total</div></div></div>
+        <div class="card-body"><div id="resumCobGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px"></div></div>
+      </div>
+
+      <!-- Precios por cadena -->
+      <div class="card mb16">
+        <div class="card-header"><div class="card-title"><span>🏪</span> Precios por Cadena</div>
+          <select id="cadenaCorteSel" onchange="renderPreciosPorCadena()" style="font-size:12px;padding:5px 8px;border-radius:7px;border:1px solid var(--gray-200);background:var(--gray-50)"><option value="">Todos los cortes</option></select>
         </div>
+        <div class="card-body np"><div class="tbl-wrap"><table>
+          <thead><tr><th>CADENA</th><th>PDV</th><th>MINERVA</th><th>COMP.</th><th>DIF %</th><th>ESTADO</th></tr></thead>
+          <tbody id="tblCadenaPrecio"></tbody>
+        </table></div></div>
       </div>
     </div>
 
@@ -394,64 +405,80 @@ tbody tr:hover{background:var(--gray-50)}
 
     <!-- ══ PEDIDOS ══ -->
     <div class="pane" id="pane-pedidos">
-      <div class="kpi-grid" id="kpiPedidos"></div>
-      <div class="card mb16">
-        <div class="card-header">
-          <div><div class="card-title"><span>📦</span> PEDIDOS · ANÁLISIS DE VOLUMEN</div><div class="card-sub" id="pedidosConnStatus">Cargando pedidos…</div></div>
-        </div>
-      </div>
+      <!-- KPIs -->
+      <div class="kpi-grid" id="kpiPedidos" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))"></div>
+
+      <!-- Top cortes + Top locales -->
       <div class="grid2 mb16">
         <div class="card">
-          <div class="card-header"><div class="card-title"><span>🥩</span> Top Cortes por kg Pedido</div></div>
+          <div class="card-header"><div class="card-title"><span>🥩</span> Cortes Más Pedidos (kg)</div></div>
           <div class="card-body"><div class="chw chw-280"><canvas id="chPedidosCorte"></canvas></div></div>
         </div>
         <div class="card">
-          <div class="card-header"><div class="card-title"><span>🏪</span> Top Locales por kg</div></div>
+          <div class="card-header"><div class="card-title"><span>🏪</span> Locales que Más Piden (kg)</div></div>
           <div class="card-body"><div class="chw chw-280"><canvas id="chPedidosLocal"></canvas></div></div>
         </div>
       </div>
-      <div class="card mb16">
-        <div class="card-header"><div class="card-title"><span>📋</span> Tabla de Pedidos · Cruce con Precios</div></div>
-        <div class="card-body np"><div class="tbl-wrap">
-          <table><thead><tr id="pedidosTblHead"></tr></thead><tbody id="tblCruce"></tbody></table>
-        </div></div>
-      </div>
-    </div>
 
-    <!-- ══ LOCALES ══ -->
-    <div class="pane" id="pane-locales">
-      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px" id="kpiLocales"></div>
+      <!-- Sell-out por cadena -->
       <div class="card mb16">
         <div class="card-header">
-          <div><div class="card-title"><span>📍</span> Directorio de Locales</div><div class="card-sub">Locales cargados desde hoja "Locales por Categoría"</div></div>
-          <div class="mini-tabs">
-            <button class="mini-tab active" onclick="switchLocTab('sin')" id="ltSin">Sin Minerva</button>
-            <button class="mini-tab" onclick="switchLocTab('todos')" id="ltTodos">Todos</button>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="search-wrap"><input type="text" id="searchLoc" placeholder="Buscar local, cadena, categoría…" oninput="renderLocales()"></div>
-          <div id="localesContent"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ RESPUESTAS ══ -->
-    <div class="pane" id="pane-respuestas">
-      <div class="grid3 mb16" id="kpiResp"></div>
-      <div class="card">
-        <div class="card-header"><div class="card-title"><span>📋</span> Base de Datos de Respuestas</div></div>
-        <div class="card-body">
-          <div class="search-wrap"><input type="text" id="searchResp" placeholder="Buscar en respuestas…" oninput="renderRespuestas()"></div>
+          <div><div class="card-title"><span>💰</span> Sell-Out Estimado por Cadena</div><div class="card-sub">kg pedido × precio de venta relevado · Gs.</div></div>
         </div>
         <div class="card-body np"><div class="tbl-wrap">
-          <table><thead><tr id="respTblHead"></tr></thead><tbody id="tblResp"></tbody></table>
+          <table>
+            <thead><tr>
+              <th>CADENA</th><th>KG TOTAL</th><th>Nº PEDIDOS</th><th>PRECIO REF. Gs.</th><th>SELL-OUT EST. Gs.</th><th>LOCALES</th>
+            </tr></thead>
+            <tbody id="tblSelloutCadena"></tbody>
+          </table>
+        </div></div>
+      </div>
+
+      <!-- Sell-out por sucursal -->
+      <div class="card mb16">
+        <div class="card-header">
+          <div><div class="card-title"><span>🏬</span> Sell-Out Estimado por Sucursal</div><div class="card-sub">kg pedido × precio Minerva relevado en esa sucursal · Gs.</div></div>
+          <input type="text" id="searchPed" placeholder="Buscar local…" oninput="renderPedidos()"
+            style="font-size:12px;padding:5px 10px;border-radius:7px;border:1px solid var(--gray-200);background:var(--gray-50);width:200px">
+        </div>
+        <div class="card-body np"><div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>LOCAL</th><th>CADENA</th><th>KG</th><th>PEDIDOS</th><th>CORTES</th><th>PRECIO MINERVA</th><th>SELL-OUT Gs.</th><th>ESTADO</th>
+            </tr></thead>
+            <tbody id="tblCruce"></tbody>
+          </table>
+        </div></div>
+      </div>
+
+      <!-- Top cortes detalle tabla -->
+      <div class="card mb16">
+        <div class="card-header"><div class="card-title"><span>📊</span> Detalle por Corte</div></div>
+        <div class="card-body np"><div class="tbl-wrap">
+          <table>
+            <thead><tr><th>CORTE</th><th>KG TOTAL</th><th>LOCALES</th><th>PRECIO MIN. Gs.</th><th>SELL-OUT EST. Gs.</th></tr></thead>
+            <tbody id="tblCorteDetalle"></tbody>
+          </table>
         </div></div>
       </div>
     </div>
 
-  </div>
-</div>
+    <!-- ══ LOCALES (oculto, mantenido para funciones internas) ══ -->
+    <div class="pane" id="pane-locales" style="display:none!important">
+      <div id="kpiLocales"></div><div id="localesContent"></div>
+      <input id="searchLoc" style="display:none">
+      <div id="ltSin" style="display:none"></div><div id="ltTodos" style="display:none"></div>
+    </div>
+
+    <!-- ══ RESPUESTAS (oculto) ══ -->
+    <div class="pane" id="pane-respuestas" style="display:none!important">
+      <div id="kpiResp"></div><div id="respTblHead"></div><div id="tblResp"></div>
+      <input id="searchResp" style="display:none">
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /mainWrap -->
 
 <script>
 /* ═══════════════════════════════════════════════════════
@@ -683,7 +710,7 @@ function processCompetencia(sheet){
     mn:       hi('marcacortenuevo|marca.corte|marcanuevo|mn$', 8),
     pcn:      hi('preciocortenuevo|precio.corte.nuevo|pcn$', 9),
     cat:      hi('categoria|category', 10),
-    cadena:   hi('cadena|canal|pdv$|categoria.pdv', 11),
+    cadena:   hi('cadena|canal|pdv$|categoria.pdv', -1), // col L eliminada del sheet → derivar de extractCadena(local)
   };
 
   console.log('[respuestas/main] columnas detectadas:', COL);
@@ -913,6 +940,32 @@ function renderResumen(){
   renderDifPanel(data);
   renderTopCortes(data);
   renderPreciosPorCadena();
+
+  // Cobertura por categoría en Resumen
+  const cats={};
+  LOCALES_MASTER.forEach(l=>{
+    if(!cats[l.CATEGORIA])cats[l.CATEGORIA]={t:0,f:0};
+    cats[l.CATEGORIA].t++;
+    if(conF.has(l.LOCAL))cats[l.CATEGORIA].f++;
+  });
+  const CAT_COLORS={'Cluster H':'#8b5cf6','Categoria A':'#0f172a','Categoria B':'#334155','Categoria C':'#94a3b8','Biggie':'#f59e0b'};
+  const sortPrio=(c)=>({'Cluster H':1,'Categoria A':2,'Biggie':3,'Categoria B':4,'Categoria C':5}[c]||9);
+  const cobGrid=document.getElementById('resumCobGrid');
+  if(cobGrid){
+    cobGrid.innerHTML=Object.entries(cats).sort((a,b)=>sortPrio(a[0])-sortPrio(b[0])).map(([cat,v])=>{
+      const p=v.t?v.f/v.t*100:0;
+      const col=p>=70?'#10b981':p>=40?'#f59e0b':'#ef4444';
+      const catCol=CAT_COLORS[cat]||'#94a3b8';
+      return`<div style="background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:16px;border-top:3px solid ${catCol};text-align:center">
+        <div style="font-size:10px;font-weight:700;color:var(--gray-500);text-transform:uppercase;margin-bottom:8px">${cat}</div>
+        <div style="font-size:26px;font-weight:800;color:${col}">${p.toFixed(0)}%</div>
+        <div style="font-size:11px;color:var(--gray-400);margin:4px 0">${v.f} / ${v.t} locales</div>
+        <div style="height:6px;background:var(--gray-100);border-radius:3px;overflow:hidden;margin-top:8px">
+          <div style="height:100%;width:${p.toFixed(0)}%;background:${col};border-radius:3px;transition:width .4s"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
 }
 
 function renderDifPanel(data){
@@ -940,68 +993,30 @@ function renderDifPanel(data){
 }
 
 function renderPreciosChart(data){
-  // Construir mapa corte → { Minerva: [], MARCA_X: [], ... }
   const cgMap={};
-  data.forEach(r=>{
-    if(!r.cg||!r.precio)return;
-    if(!cgMap[r.cg])cgMap[r.cg]={};
-    if(!cgMap[r.cg][r.marca])cgMap[r.cg][r.marca]=[];
-    cgMap[r.cg][r.marca].push(r.precio);
-  });
-
-  // Todas las marcas competencia ordenadas por presencia (locales únicos)
+  data.forEach(r=>{if(!r.cg||!r.precio)return;if(!cgMap[r.cg])cgMap[r.cg]={};if(!cgMap[r.cg][r.marca])cgMap[r.cg][r.marca]=[];cgMap[r.cg][r.marca].push(r.precio);});
   const mLocs={};
-  data.filter(r=>r.tipo==='COMPETENCIA').forEach(r=>{
-    if(!mLocs[r.marca])mLocs[r.marca]=new Set();
-    mLocs[r.marca].add(r.local);
-  });
-  const todasMarcas=Object.entries(mLocs)
-    .sort((a,b)=>b[1].size-a[1].size)
-    .map(([m])=>m); // TODAS, sin slice
+  data.filter(r=>r.tipo==='COMPETENCIA').forEach(r=>{if(!mLocs[r.marca])mLocs[r.marca]=new Set();mLocs[r.marca].add(r.local);});
+  const todasMarcas=Object.entries(mLocs).sort((a,b)=>b[1].size-a[1].size).map(([m])=>m);
+
+  // Poblar select de marcas si está vacío
+  const sel=document.getElementById('fMarcaChart');
+  if(sel&&sel.options.length===0){
+    todasMarcas.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;o.selected=true;sel.appendChild(o);});
+  }
+  const seleccionadas=sel?[...sel.selectedOptions].map(o=>o.value):todasMarcas;
+  const marcasFiltradas=seleccionadas.length?seleccionadas:todasMarcas;
 
   const allCg=Object.keys(cgMap);
   const topFirst=TOP_CORTES.filter(c=>allCg.includes(c));
   const others=allCg.filter(c=>!TOP_CORTES.includes(c));
   let rows=[...topFirst,...others]
-    .map(k=>({
-      k,
-      pF:avg(cgMap[k]['Minerva']||[]),
-      byM:Object.fromEntries(todasMarcas.map(m=>[m,avg(cgMap[k][m]||[])]))
-    }))
-    .filter(r=>r.pF&&r.pF<400000 && todasMarcas.some(m=>r.byM[m]&&r.byM[m]<400000));
+    .map(k=>({k,pF:avg(cgMap[k]['Minerva']||[]),byM:Object.fromEntries(marcasFiltradas.map(m=>[m,avg(cgMap[k][m]||[])]))}))
+    .filter(r=>r.pF&&r.pF<400000&&marcasFiltradas.some(m=>r.byM[m]&&r.byM[m]<400000));
+  if(chartMode==='top')rows=rows.slice(0,8);
 
-  if(chartMode==='top') rows=rows.slice(0,8);
-
-  // Paleta ampliada para muchas marcas
-  const BRAND_COLORS=['#f43f5e','#f97316','#a855f7','#10b981','#eab308','#06b6d4','#ec4899','#84cc16','#6366f1','#14b8a6'];
-
-  const cfg={
-    type:'bar',
-    data:{
-      labels:rows.map(r=>r.k.length>22?r.k.slice(0,21)+'…':r.k),
-      datasets:[
-        {label:'Minerva',data:rows.map(r=>r.pF?Math.round(r.pF):null),backgroundColor:'#0ea5e9',borderRadius:5,borderSkipped:false,borderWidth:0},
-        ...todasMarcas.map((m,i)=>({
-          label:m,
-          data:rows.map(r=>r.byM[m]?Math.round(r.byM[m]):null),
-          backgroundColor:BRAND_COLORS[i%BRAND_COLORS.length],
-          borderRadius:5,borderSkipped:false,borderWidth:0
-        }))
-      ]
-    },
-    options:{
-      ...BASE(),
-      indexAxis:'y',
-      plugins:{
-        legend:{position:'top',labels:{font:{size:10},boxWidth:10,color:'#334155',padding:12,usePointStyle:true,pointStyle:'circle'}},
-        tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': Gs. '+gs(ctx.raw)}}
-      },
-      scales:{
-        x:{ticks:{callback:v=>gs(v),font:{size:9},color:'#94a3b8'},grid:{color:'#f1f5f9'},border:{display:false}},
-        y:{ticks:{font:{size:10,weight:'500'},color:'#1e293b',padding:4},grid:{display:false},border:{display:false}}
-      }
-    }
-  };
+  const BC=['#f43f5e','#f97316','#a855f7','#10b981','#eab308','#06b6d4','#ec4899','#84cc16','#6366f1','#14b8a6','#fb923c','#a3e635','#34d399','#38bdf8','#818cf8'];
+  const cfg={type:'bar',data:{labels:rows.map(r=>r.k.length>22?r.k.slice(0,21)+'…':r.k),datasets:[{label:'Minerva',data:rows.map(r=>r.pF?Math.round(r.pF):null),backgroundColor:'#0ea5e9',borderRadius:5,borderSkipped:false,borderWidth:0},...marcasFiltradas.map((m,i)=>({label:m,data:rows.map(r=>r.byM[m]?Math.round(r.byM[m]):null),backgroundColor:BC[i%BC.length],borderRadius:5,borderSkipped:false,borderWidth:0}))]},options:{...BASE(),indexAxis:'y',plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:10,color:'#334155',padding:10,usePointStyle:true,pointStyle:'circle'}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': Gs. '+gs(ctx.raw)}}},scales:{x:{ticks:{callback:v=>gs(v),font:{size:9},color:'#94a3b8'},grid:{color:'#f1f5f9'},border:{display:false}},y:{ticks:{font:{size:10,weight:'500'},color:'#1e293b',padding:4},grid:{display:false},border:{display:false}}}}};
   mkChart('chPrecios',cfg);
   mkChart('chPreciosMain',cfg);
 }
@@ -1294,47 +1309,162 @@ function renderTablaCob(){
 }
 
 /* ═══════════════════════════════════════════════════════
-   PEDIDOS (PANE)
+   PEDIDOS (PANE) — con Sell-Out por cadena y sucursal
 ═══════════════════════════════════════════════════════ */
 function renderPedidos(){
-  const ped=PEDIDOS_ROWS;
+  const ped = PEDIDOS_ROWS;
+  const q   = (document.getElementById('searchPed')?.value||'').toLowerCase();
+
   if(!ped.length){
     document.getElementById('kpiPedidos').innerHTML='<div class="empty" style="grid-column:1/-1;padding:32px">Sin datos de pedidos</div>';
-    document.getElementById('pedidosConnStatus').textContent='Sin datos cargados';
     return;
   }
-  document.getElementById('pedidosConnStatus').textContent=`${ped.length.toLocaleString()} registros de pedidos`;
-  const byL={},byC={};let tot=0;
-  ped.forEach(r=>{tot+=r.kg;if(!byL[r.local])byL[r.local]={kg:0,pd:0,ct:new Set(),cad:r.cadena};byL[r.local].kg+=r.kg;byL[r.local].pd++;byL[r.local].ct.add(r.corte);if(!byC[r.corte])byC[r.corte]={kg:0,loc:new Set()};byC[r.corte].kg+=r.kg;byC[r.corte].loc.add(r.local);});
 
+  // Precio Minerva por local (del sheet de relevamiento)
+  const precioMinervaPorLocal={};
+  filtered.forEach(r=>{
+    if(r.tipo==='FRIGO'&&r.precio){
+      if(!precioMinervaPorLocal[r.local])precioMinervaPorLocal[r.local]=[];
+      precioMinervaPorLocal[r.local].push(r.precio);
+    }
+  });
+  const getPrecioMin=local=>avg(precioMinervaPorLocal[local]||[]);
+
+  // Precio Minerva por corte (fallback si no hay precio para el local)
+  const precioMinervaPorCorte={};
+  filtered.forEach(r=>{
+    if(r.tipo==='FRIGO'&&r.precio&&r.cg){
+      if(!precioMinervaPorCorte[r.cg])precioMinervaPorCorte[r.cg]=[];
+      precioMinervaPorCorte[r.cg].push(r.precio);
+    }
+  });
+
+  // ── Agregados por local y por corte ──
+  const byL={}, byC={}, byCad={};
+  let totKg=0, totSellout=0;
+
+  ped.forEach(r=>{
+    const pRef = getPrecioMin(r.local) || avg(precioMinervaPorCorte[r.corte]||[]) || null;
+    const sellout = pRef ? r.kg * pRef : null;
+    totKg += r.kg;
+    if(sellout) totSellout += sellout;
+
+    // Por local
+    if(!byL[r.local]) byL[r.local]={kg:0,pd:0,ct:new Set(),cad:r.cadena,sellout:0,pRef:null};
+    byL[r.local].kg      += r.kg;
+    byL[r.local].pd++;
+    byL[r.local].ct.add(r.corte);
+    if(sellout) byL[r.local].sellout += sellout;
+    if(!byL[r.local].pRef && pRef) byL[r.local].pRef = pRef;
+
+    // Por corte
+    if(!byC[r.corte]) byC[r.corte]={kg:0,loc:new Set(),sellout:0};
+    byC[r.corte].kg += r.kg;
+    byC[r.corte].loc.add(r.local);
+    if(sellout) byC[r.corte].sellout += sellout;
+
+    // Por cadena
+    const cad = r.cadena||'SIN CADENA';
+    if(!byCad[cad]) byCad[cad]={kg:0,pd:0,loc:new Set(),sellout:0,precios:[]};
+    byCad[cad].kg += r.kg;
+    byCad[cad].pd++;
+    byCad[cad].loc.add(r.local);
+    if(sellout) byCad[cad].sellout += sellout;
+    if(pRef) byCad[cad].precios.push(pRef);
+  });
+
+  // ── KPIs ──
   document.getElementById('kpiPedidos').innerHTML=`
-    ${kpiCard('📦','TOTAL KG',(tot/1000).toFixed(1)+'T','total pedido','#3b82f6','#eff6ff')}
+    ${kpiCard('📦','KG TOTAL',(totKg/1000).toFixed(1)+'T','volumen pedido','#3b82f6','#eff6ff')}
+    ${kpiCard('💰','SELL-OUT EST.','Gs. '+gs(totSellout),'kg × precio relevado','#10b981','#ecfdf5')}
     ${kpiCard('🏪','LOCALES',Object.keys(byL).length,'con pedido','#f59e0b','#fffbeb')}
-    ${kpiCard('🥩','CORTES',Object.keys(byC).length,'productos','#8b5cf6','#f5f3ff')}`;
+    ${kpiCard('🥩','CORTES',Object.keys(byC).length,'productos distintos','#8b5cf6','#f5f3ff')}`;
 
-  const tpC=Object.entries(byC).sort((a,b)=>b[1].kg-a[1].kg).slice(0,10);
-  mkChart('chPedidosCorte',{type:'bar',data:{labels:tpC.map(([c])=>c.length>24?c.slice(0,23)+'.':c),datasets:[{data:tpC.map(([,v])=>Math.round(v.kg)),backgroundColor:tpC.map((_,i)=>`hsl(${200+i*18},65%,55%)`),borderRadius:5,borderSkipped:false}]},options:{...BASE(),indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'T':v,font:{size:9},color:'#94a3b8'},grid:{color:'#f1f5f9'},border:{display:false}},y:{ticks:{font:{size:9},color:'#334155'},grid:{display:false},border:{display:false}}}}});
+  // ── Gráfico Top cortes ──
+  const tpC=Object.entries(byC).sort((a,b)=>b[1].kg-a[1].kg).slice(0,12);
+  mkChart('chPedidosCorte',{
+    type:'bar',
+    data:{labels:tpC.map(([c])=>c.length>26?c.slice(0,25)+'…':c),datasets:[{
+      data:tpC.map(([,v])=>Math.round(v.kg)),
+      backgroundColor:tpC.map((_,i)=>`hsl(${200+i*15},65%,55%)`),
+      borderRadius:5,borderSkipped:false
+    }]},
+    options:{...BASE(),indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+Math.round(ctx.raw).toLocaleString('es-PY')+' kg'}}},
+      scales:{x:{ticks:{callback:v=>v>=1000?(v/1000).toFixed(1)+'T':v,font:{size:9},color:'#94a3b8'},grid:{color:'#f1f5f9'},border:{display:false}},
+              y:{ticks:{font:{size:9},color:'#334155'},grid:{display:false},border:{display:false}}}}
+  });
 
-  const tpL=Object.entries(byL).sort((a,b)=>b[1].kg-a[1].kg).slice(0,10);
-  mkChart('chPedidosLocal',{type:'bar',data:{labels:tpL.map(([l])=>l.length>22?l.slice(0,21)+'.':l),datasets:[{data:tpL.map(([,v])=>Math.round(v.kg)),backgroundColor:'#0ea5e9',borderRadius:5,borderSkipped:false}]},options:{...BASE(),indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'T':v,font:{size:9},color:'#94a3b8'},grid:{color:'#f1f5f9'},border:{display:false}},y:{ticks:{font:{size:9},color:'#334155'},grid:{display:false},border:{display:false}}}}});
+  // ── Gráfico Top locales ──
+  const tpL=Object.entries(byL).sort((a,b)=>b[1].kg-a[1].kg).slice(0,12);
+  mkChart('chPedidosLocal',{
+    type:'bar',
+    data:{labels:tpL.map(([l])=>l.length>24?l.slice(0,23)+'…':l),datasets:[{
+      data:tpL.map(([,v])=>Math.round(v.kg)),
+      backgroundColor:'#0ea5e9',borderRadius:5,borderSkipped:false
+    }]},
+    options:{...BASE(),indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+Math.round(ctx.raw).toLocaleString('es-PY')+' kg'}}},
+      scales:{x:{ticks:{callback:v=>v>=1000?(v/1000).toFixed(1)+'T':v,font:{size:9},color:'#94a3b8'},grid:{color:'#f1f5f9'},border:{display:false}},
+              y:{ticks:{font:{size:9},color:'#334155'},grid:{display:false},border:{display:false}}}}
+  });
 
-  // Cruce tabla
-  const pm={};filtered.forEach(r=>{if(!pm[r.local])pm[r.local]={m:[],c:[]};if(r.tipo==='FRIGO'&&r.precio)pm[r.local].m.push(r.precio);else if(r.tipo==='COMPETENCIA'&&r.precio)pm[r.local].c.push(r.precio);});
-  const ls=Object.entries(byL).sort((a,b)=>b[1].kg-a[1].kg);
-  const thead=document.getElementById('pedidosTblHead');
-  if(thead)thead.innerHTML='<th>LOCAL</th><th>CADENA</th><th>KG TOTAL</th><th>Nº PED.</th><th>PRECIO MIN.</th><th>PRECIO COMP.</th><th>DIF.</th><th>ESTADO</th>';
-  document.getElementById('tblCruce').innerHTML=ls.slice(0,100).map((e,i)=>{
-    const[loc,d]=e;const pf=avg((pm[loc]||{m:[]}).m);const pc=avg((pm[loc]||{c:[]}).c);const diff=pf&&pc?(pf-pc)/pc*100:null;
+  // ── Sell-Out por cadena ──
+  const cadRows=Object.entries(byCad).sort((a,b)=>b[1].sellout-a[1].sellout);
+  document.getElementById('tblSelloutCadena').innerHTML=cadRows.map((e,i)=>{
+    const[cad,d]=e;const pRef=avg(d.precios);const bg=i%2?'var(--gray-50)':'#fff';
+    return`<tr style="background:${bg}">
+      <td style="font-weight:700">${cad}</td>
+      <td style="text-align:center;font-weight:700;color:#0ea5e9">${Math.round(d.kg).toLocaleString('es-PY')} kg</td>
+      <td style="text-align:center">${d.pd}</td>
+      <td style="text-align:center">${pRef?'Gs. '+gs(pRef):'—'}</td>
+      <td style="text-align:center;font-weight:700;color:${d.sellout?'#10b981':'var(--gray-400)'}">${d.sellout?'Gs. '+gs(d.sellout):'—'}</td>
+      <td style="text-align:center">${d.loc.size}</td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="6" class="empty">Sin datos</td></tr>';
+
+  // ── Sell-Out por sucursal ──
+  const locRows=Object.entries(byL)
+    .filter(([loc])=>!q||loc.toLowerCase().includes(q))
+    .sort((a,b)=>b[1].sellout-a[1].sellout||b[1].kg-a[1].kg);
+
+  document.getElementById('tblCruce').innerHTML=locRows.slice(0,200).map((e,i)=>{
+    const[loc,d]=e;
     const info=getLocalInfo(loc);
+    const pF=d.pRef;
+    const pc=avg((filtered.filter(r=>r.local===loc&&r.tipo==='COMPETENCIA')).map(r=>r.precio).filter(Boolean));
+    const diff=pF&&pc?(pF-pc)/pc*100:null;
     let oTag;
-    if(!pf&&d.kg>3000)oTag='<span style="background:#fef2f2;color:#b91c1c;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px">📋 RELEVAR</span>';
-    else if(!pf)oTag='<span style="background:#f1f5f9;color:#94a3b8;font-size:10px;padding:3px 8px;border-radius:12px">SIN RELEVAM.</span>';
+    if(!pF&&d.kg>3000)oTag='<span style="background:#fef2f2;color:#b91c1c;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px">📋 RELEVAR</span>';
+    else if(!pF)oTag='<span style="background:#f1f5f9;color:#94a3b8;font-size:10px;padding:3px 8px;border-radius:12px">SIN PRECIO</span>';
     else if(diff!==null&&diff<-10)oTag='<span style="background:#ecfdf5;color:#047857;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px">✓ COMPETITIVO</span>';
     else if(diff!==null&&diff>5)oTag='<span style="background:#fffbeb;color:#b45309;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px">⚠ PRECIO ALTO</span>';
     else oTag='<span style="background:#f0fdf4;color:#166534;font-size:10px;padding:3px 8px;border-radius:12px">✓ OK</span>';
     const bg=i%2?'var(--gray-50)':'#fff';
-    return`<tr style="background:${bg}"><td style="font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${loc}</td><td>${info?info.CADENA:d.cad||'—'}</td><td style="text-align:center;font-weight:700;color:#0ea5e9">${Math.round(d.kg).toLocaleString('es-PY')}</td><td style="text-align:center">${d.pd}</td><td style="font-weight:700;color:var(--blue)">${pf?'Gs. '+gs(pf):'—'}</td><td>${pc?'Gs. '+gs(pc):'—'}</td><td>${diff!==null?diffBadge(diff):'—'}</td><td>${oTag}</td></tr>`;
+    return`<tr style="background:${bg}">
+      <td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${loc}">${loc}</td>
+      <td><span class="tag tag-c">${info?info.CADENA:d.cad||'—'}</span></td>
+      <td style="text-align:center;font-weight:700;color:#0ea5e9">${Math.round(d.kg).toLocaleString('es-PY')}</td>
+      <td style="text-align:center">${d.pd}</td>
+      <td style="text-align:center">${d.ct.size}</td>
+      <td style="font-weight:700;color:var(--blue)">${pF?'Gs. '+gs(pF):'—'}</td>
+      <td style="font-weight:700;color:#10b981">${d.sellout?'Gs. '+gs(d.sellout):'—'}</td>
+      <td>${oTag}</td>
+    </tr>`;
   }).join('')||'<tr><td colspan="8" class="empty">Sin datos</td></tr>';
+
+  // ── Detalle por corte ──
+  const corteRows=Object.entries(byC).sort((a,b)=>b[1].kg-a[1].kg);
+  document.getElementById('tblCorteDetalle').innerHTML=corteRows.slice(0,50).map((e,i)=>{
+    const[corte,d]=e;
+    const pRef=avg(precioMinervaPorCorte[corte]||[]);
+    const bg=i%2?'var(--gray-50)':'#fff';
+    return`<tr style="background:${bg}">
+      <td style="font-weight:600">${corte}</td>
+      <td style="text-align:center;font-weight:700;color:#0ea5e9">${Math.round(d.kg).toLocaleString('es-PY')} kg</td>
+      <td style="text-align:center">${d.loc.size}</td>
+      <td style="text-align:center">${pRef?'Gs. '+gs(pRef):'—'}</td>
+      <td style="text-align:center;font-weight:700;color:#10b981">${d.sellout?'Gs. '+gs(d.sellout):'—'}</td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="5" class="empty">Sin datos</td></tr>';
 }
 
 /* ═══════════════════════════════════════════════════════
