@@ -455,31 +455,68 @@ tbody tr:hover{background:var(--gray-50)}
 
 <script>
 /* ═══════════════════════════════════════════════════════
-   URLS
+   URLS  — formato CSV directo (CORS habilitado por Google)
+   Cada pubhtml se convierte a pub?output=csv
 ═══════════════════════════════════════════════════════ */
-const SHEET_URLS={
-  respuestas:'https://docs.google.com/spreadsheets/d/e/2PACX-1vSMgOxKbxLf61TNIiKKEegElOSvAz-dxHWgw591McciGAo1cZUpxw106K-1dM3eM_edxusFYal_AIuU/pubhtml',
-  pedidos:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vQjJfvWVC37EMGAlxG2qsxbiN2NcSs3pK_V5gPqLWdW1VIdaxPfrfh3tJPVXjrU5waeAOGSU-995d7u/pubhtml',
-  competencia:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXRis6q-eyM8NhBokbtaXCJDu6tpU1U3MK51Q7aOtZWihsSejDLlb7wOoGKxQ1NDcYtjl1ISi0ti3x/pubhtml',
-  locales:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vSNckXvP0nhh8ZBmHOER3EfWO7y_PEaPfeLcEcWyKlNffuaW6tFDRpFkLWJnlsaMkY8FsbpScZsaIv6/pubhtml',
+const SHEET_IDS={
+  respuestas:'2PACX-1vSMgOxKbxLf61TNIiKKEegElOSvAz-dxHWgw591McciGAo1cZUpxw106K-1dM3eM_edxusFYal_AIuU',
+  pedidos:   '2PACX-1vQjJfvWVC37EMGAlxG2qsxbiN2NcSs3pK_V5gPqLWdW1VIdaxPfrfh3tJPVXjrU5waeAOGSU-995d7u',
+  competencia:'2PACX-1vQXRis6q-eyM8NhBokbtaXCJDu6tpU1U3MK51Q7aOtZWihsSejDLlb7wOoGKxQ1NDcYtjl1ISi0ti3x',
+  locales:   '2PACX-1vSNckXvP0nhh8ZBmHOER3EfWO7y_PEaPfeLcEcWyKlNffuaW6tFDRpFkLWJnlsaMkY8FsbpScZsaIv6',
 };
 
+// Genera variantes de URL a intentar en orden
+function getURLs(id){
+  const base=`https://docs.google.com/spreadsheets/d/e/${id}/pub?output=csv`;
+  return[
+    base,
+    `https://corsproxy.io/?${encodeURIComponent(base)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`,
+  ];
+}
+
 /* ═══════════════════════════════════════════════════════
-   HTML SHEET PARSER
+   CSV PARSER  (maneja comillas, comas internas, \r\n)
 ═══════════════════════════════════════════════════════ */
-async function fetchSheet(url){
-  const r=await fetch(url,{cache:'no-store'});
-  if(!r.ok)throw new Error(`HTTP ${r.status}`);
-  const html=await r.text();
-  const doc=new DOMParser().parseFromString(html,'text/html');
-  const tbl=doc.querySelector('table');
-  if(!tbl)return{headers:[],rows:[]};
-  const rows=Array.from(tbl.querySelectorAll('tr'));
-  if(!rows.length)return{headers:[],rows:[]};
-  // first row = headers
-  const headers=Array.from(rows[0].querySelectorAll('th,td')).map(c=>c.textContent.trim());
-  const data=rows.slice(1).map(r=>Array.from(r.querySelectorAll('th,td')).map(c=>c.textContent.trim())).filter(r=>r.some(c=>c));
-  return{headers,rows:data};
+function parseCSV(text){
+  const lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim().split('\n');
+  function splitLine(line){
+    const cols=[];let cur='',inQ=false;
+    for(let i=0;i<line.length;i++){
+      const c=line[i];
+      if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+      else if(c===','&&!inQ){cols.push(cur.trim());cur='';}
+      else cur+=c;
+    }
+    cols.push(cur.trim());
+    return cols;
+  }
+  if(!lines.length)return{headers:[],rows:[]};
+  const headers=splitLine(lines[0]);
+  const rows=lines.slice(1).map(l=>splitLine(l)).filter(r=>r.some(c=>c));
+  return{headers,rows};
+}
+
+/* ═══════════════════════════════════════════════════════
+   FETCH CON FALLBACK DE PROXY
+═══════════════════════════════════════════════════════ */
+async function fetchSheet(key){
+  const urls=getURLs(SHEET_IDS[key]);
+  let lastErr='';
+  for(const url of urls){
+    try{
+      const r=await fetch(url,{cache:'no-store'});
+      if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      const text=await r.text();
+      if(!text||text.length<10)throw new Error('Respuesta vacía');
+      // Detectar si devolvió HTML de login (redirect de Google)
+      if(text.trim().startsWith('<!DOCTYPE')||text.trim().startsWith('<html'))
+        throw new Error('Respuesta HTML (posible redirect)');
+      return parseCSV(text);
+    }catch(e){lastErr=e.message;console.warn(`[${key}] falló ${url}: ${e.message}`);}
+  }
+  console.error(`[${key}] todos los intentos fallaron: ${lastErr}`);
+  return{headers:[],rows:[],_err:lastErr};
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1179,22 +1216,22 @@ async function loadData(manual=false){
 
   try{
     setMsg('Cargando hoja de Competencia…');
-    const shComp=await fetchSheet(SHEET_URLS.competencia).catch(e=>({headers:[],rows:[],_err:e.message}));
+    const shComp=await fetchSheet('competencia');
     RAW=shComp.rows.length?processCompetencia(shComp):[];
     if(shComp._err)console.warn('Competencia:',shComp._err);
 
     setMsg('Cargando Locales por Categoría…');
-    DS_LOCALES=await fetchSheet(SHEET_URLS.locales).catch(e=>({headers:[],rows:[],_err:e.message}));
+    DS_LOCALES=await fetchSheet('locales');
     buildLocalesMap(DS_LOCALES);
     if(DS_LOCALES._err)console.warn('Locales:',DS_LOCALES._err);
 
     setMsg('Cargando Pedidos…');
-    DS_PEDIDOS=await fetchSheet(SHEET_URLS.pedidos).catch(e=>({headers:[],rows:[],_err:e.message}));
+    DS_PEDIDOS=await fetchSheet('pedidos');
     PEDIDOS_ROWS=DS_PEDIDOS.rows.length?processPedidos(DS_PEDIDOS):[];
     if(DS_PEDIDOS._err)console.warn('Pedidos:',DS_PEDIDOS._err);
 
     setMsg('Cargando Base de Respuestas…');
-    DS_RESPUESTAS=await fetchSheet(SHEET_URLS.respuestas).catch(e=>({headers:[],rows:[],_err:e.message}));
+    DS_RESPUESTAS=await fetchSheet('respuestas');
     RESP_HEADERS=DS_RESPUESTAS.headers;
     RESP_ROWS=DS_RESPUESTAS.rows;
     if(DS_RESPUESTAS._err)console.warn('Respuestas:',DS_RESPUESTAS._err);
@@ -1202,6 +1239,19 @@ async function loadData(manual=false){
     filtered=RAW;
     populateSelects();
     applyFilters();
+
+    // Mostrar advertencias si alguna hoja no cargó
+    const warns=[];
+    if(!RAW.length)warns.push('⚠ Competencia: sin datos');
+    if(!LOCALES_MASTER.length)warns.push('⚠ Locales: sin datos');
+    if(!PEDIDOS_ROWS.length)warns.push('⚠ Pedidos: sin datos');
+    if(!RESP_ROWS.length)warns.push('⚠ Respuestas: sin datos');
+    if(warns.length){
+      const banner=document.createElement('div');
+      banner.style.cssText='background:#fffbeb;border:1px solid #f59e0b;border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:#92400e;';
+      banner.innerHTML='<strong>Algunas hojas no cargaron correctamente:</strong><br>'+warns.join(' · ')+'<br><small>Verificá que cada hoja esté publicada: Archivo → Compartir → Publicar en la web → CSV</small>';
+      document.querySelector('.content').prepend(banner);
+    }
 
     document.getElementById('lupd').textContent=new Date().toLocaleTimeString('es-PY',{hour:'2-digit',minute:'2-digit'});
     document.getElementById('connDot').className='status-dot';
