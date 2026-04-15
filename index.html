@@ -6,155 +6,105 @@
 <title>Minerva · Price Intelligence · PrendasPYapp</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-/* ═══════════════════════════════════════════════════════
-   ESTILOS ORIGINALES COMPLETOS
-═══════════════════════════════════════════════════════ */
+/* Estilos extraídos del formato original adjunto */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --white:#ffffff;
-  --gray-50:#f8fafc;--gray-100:#f1f5f9;--gray-200:#e2e8f0;--gray-300:#cbd5e1;
-  --gray-400:#94a3b8;--gray-500:#64748b;--gray-600:#475569;--gray-700:#334155;
-  --gray-800:#1e293b;--gray-900:#0f172a;
-  --blue:#0ea5e9;--blue-light:#e0f2fe;--blue-dark:#0284c7;
-  --green:#10b981;--green-light:#ecfdf5;--green-dark:#047857;
-  --red:#ef4444;--red-light:#fef2f2;
-  --amber:#f59e0b;--amber-light:#fffbeb;
-  --purple:#8b5cf6;--purple-light:#f5f3ff;
-  --indigo:#6366f1;
-  --shadow-sm:0 1px 3px rgba(0,0,0,.08);
-  --shadow:0 4px 6px rgba(0,0,0,.07);
-  --shadow-md:0 8px 16px rgba(0,0,0,.08);
-  --radius:10px;--radius-lg:14px;
+  --white:#ffffff; --gray-50:#f8fafc; --gray-100:#f1f5f9; --gray-200:#e2e8f0;
+  --gray-800:#1e293b; --gray-900:#0f172a; --blue:#0ea5e9; --blue-light:#e0f2fe;
+  --green:#10b981; --red:#ef4444; --amber:#f59e0b; --radius-lg:14px;
 }
-html{scroll-behavior:smooth}
-body{font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:var(--gray-50);color:var(--gray-800);font-size:14px;line-height:1.5;min-height:100vh}
-body.dark{--gray-50:#0f172a;--gray-100:#1e293b;--gray-200:#334155;--gray-300:#475569;--gray-400:#64748b;--gray-500:#94a3b8;--gray-600:#cbd5e1;--gray-700:#e2e8f0;--gray-800:#f1f5f9;--gray-900:#f8fafc;--white:#1e293b}
+body{font-family:"Segoe UI",sans-serif;background:var(--gray-50);color:var(--gray-800);font-size:14px;min-height:100vh}
 
-.sidebar{position:fixed;top:0;left:0;height:100vh;width:220px;background:linear-gradient(180deg,#020617 0%,#0f172a 60%,#0c1a2e 100%);display:flex;flex-direction:column;z-index:200;transition:transform .25s}
-.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
-.logo-badge{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;padding:6px 10px;border-radius:7px;font-size:11px;font-weight:700;letter-spacing:.04em}
-.logo-client{margin-top:10px;font-size:13px;font-weight:600;color:#fff;letter-spacing:.01em}
-.logo-sub{font-size:11px;color:var(--gray-400);margin-top:2px}
-.nav{flex:1;padding:16px 10px;overflow-y:auto}
-.nav-section{font-size:10px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.08em;padding:0 10px 8px;margin-top:8px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--gray-400);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:2px;border:none;background:none;width:100%;text-align:left}
-.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
-.nav-item.active{background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;box-shadow:0 4px 12px rgba(14,165,233,.3)}
-.nav-item .ni{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+/* Sidebar Estilo Minerva */
+.sidebar{position:fixed;top:0;left:0;height:100vh;width:220px;background:linear-gradient(180deg,#020617 0%,#0f172a 60%,#0c1a2e 100%);display:flex;flex-direction:column;z-index:200}
+.sidebar-logo{padding:20px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.logo-badge{background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;padding:6px 10px;border-radius:7px;font-weight:700;font-size:11px}
+.nav-section{font-size:10px;font-weight:700;color:var(--gray-500);text-transform:uppercase;padding:15px 20px 8px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;color:var(--gray-400);background:none;border:none;width:100%;cursor:pointer;text-align:left;transition:all 0.2s}
+.nav-item:hover{background:rgba(255,255,255,0.06);color:#fff}
+.nav-item.active{background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;box-shadow:0 4px 12px rgba(14,165,233,0.3)}
 
-.topbar{position:fixed;top:0;left:220px;right:0;height:56px;background:var(--white);border-bottom:1px solid var(--gray-200);box-shadow:0 1px 20px rgba(0,0,0,.06);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:100;gap:12px}
-.topbar-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
-.page-title{font-size:16px;font-weight:700;color:var(--gray-800);white-space:nowrap}
-.page-subtitle{font-size:12px;color:var(--gray-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.hamburger{display:none;background:none;border:none;font-size:20px;cursor:pointer;color:var(--gray-600);padding:4px 8px}
+/* Topbar */
+.topbar{position:fixed;top:0;left:220px;right:0;height:56px;background:#fff;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:100}
 
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid var(--gray-200);background:var(--white);color:var(--gray-600);cursor:pointer;font-size:12px;font-family:inherit;font-weight:500;transition:all .15s;white-space:nowrap}
-.btn:hover{background:var(--gray-50);border-color:var(--gray-300);color:var(--gray-800)}
-.btn-primary{background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;border:none;box-shadow:0 4px 12px rgba(14,165,233,.35)}
-.btn-primary:hover{opacity:.9;color:#fff}
-.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block}
-.status-dot.offline{background:var(--red)}
-.lupd{font-size:11px;color:var(--gray-400)}
-
-.main{margin-left:220px;padding-top:56px;min-height:100vh}
+/* Contenedores */
+.main{margin-left:220px;padding-top:56px}
 .content{padding:24px;max-width:1440px}
-
-.fbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:10px 14px;margin-bottom:20px;box-shadow:var(--shadow-sm)}
-.fbar-label{font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
-.fbar select,.fbar input[type=text]{font-size:12px;padding:5px 9px;border-radius:7px;border:1px solid var(--gray-200);background:var(--gray-50);color:var(--gray-700);font-family:inherit;outline:none;transition:border-color .15s}
-.fbar select:focus,.fbar input:focus{border-color:var(--blue);background:#fff}
-
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
-.kpi-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden}
-.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-color,var(--blue));border-radius:14px 14px 0 0}
-.kpi-label{font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
-.kpi-value{font-size:24px;font-weight:800;color:var(--gray-900);line-height:1;letter-spacing:-.5px}
-.kpi-sub{font-size:11px;color:var(--gray-400);margin-top:5px}
+.kpi-card{background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:18px;position:relative;box-shadow:var(--shadow-sm)}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--blue);border-radius:14px 14px 0 0}
+.card{background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius-lg);margin-bottom:16px;overflow:hidden;box-shadow:var(--shadow-sm)}
 
-.card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:16px}
-.card-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--gray-100)}
-.card-title{font-size:13px;font-weight:700;color:var(--gray-800);display:flex;align-items:center;gap:8px}
-
-.tbl-wrap{overflow-x:auto;overflow-y:auto;max-height:450px}
+/* Tablas */
+.tbl-wrap{overflow-x:auto;max-height:400px}
 table{width:100%;border-collapse:collapse;font-size:12px}
-thead th{background:var(--gray-50);color:var(--gray-500);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:9px 12px;text-align:left;border-bottom:1px solid var(--gray-200);position:sticky;top:0;z-index:1}
-tbody td{padding:9px 12px;border-bottom:1px solid var(--gray-100);color:var(--gray-700)}
+thead th{background:var(--gray-50);padding:10px;text-align:left;position:sticky;top:0;z-index:1;font-weight:700;color:var(--gray-500);text-transform:uppercase}
+tbody td{padding:10px;border-bottom:1px solid var(--gray-100)}
 
 .pane{display:none}
 .pane.active{display:block}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block}
 
-.loading{display:flex;align-items:center;gap:12px;color:var(--gray-500);font-size:13px}
-.spinner{width:24px;height:24px;border:2px solid var(--gray-200);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-@media(max-width:900px){
-  .hamburger{display:block}
-  .sidebar{transform:translateX(-100%)}
-  .sidebar.open{transform:translateX(0)}
-  .topbar{left:0}.main{margin-left:0}
-  .kpi-grid{grid-template-columns:repeat(2,1fr)}
-}
+@media(max-width:900px){.sidebar{display:none}.topbar{left:0}.main{margin-left:0}}
 </style>
 </head>
 <body>
 
-<nav class="sidebar" id="sidebar">
+<nav class="sidebar">
   <div class="sidebar-logo">
     <div class="logo-badge">⬡ MINERVA</div>
-    <div class="logo-client">Price Intelligence</div>
-    <div class="logo-sub">PrendasPYapp</div>
+    <div style="color:#fff; font-size:13px; font-weight:600; margin-top:10px">Price Intelligence</div>
   </div>
   <div class="nav">
     <div class="nav-section">Resumen</div>
-    <button class="nav-item active" onclick="sw('resumen')" id="nav-resumen"><span class="ni">📊</span> RESUMEN GENERAL</button>
+    <button class="nav-item active" onclick="sw('resumen')" id="nav-resumen">📊 RESUMEN GENERAL</button>
     <div class="nav-section">Análisis</div>
-    <button class="nav-item" onclick="sw('precios')" id="nav-precios"><span class="ni">💰</span> PRECIOS</button>
-    <button class="nav-item" onclick="sw('competencia')" id="nav-competencia"><span class="ni">⚔️</span> COMPETENCIA</button>
-    <button class="nav-item" onclick="sw('cobertura')" id="nav-cobertura"><span class="ni">🗺️</span> COBERTURA</button>
+    <button class="nav-item" onclick="sw('precios')" id="nav-precios">💰 PRECIOS</button>
+    <button class="nav-item" onclick="sw('competencia')" id="nav-competencia">⚔️ COMPETENCIA</button>
+    <button class="nav-item" onclick="sw('cobertura')" id="nav-cobertura">🗺️ COBERTURA</button>
     <div class="nav-section">Operaciones</div>
-    <button class="nav-item" onclick="sw('pedidos')" id="nav-pedidos"><span class="ni">📦</span> PEDIDOS</button>
-    <button class="nav-item" onclick="sw('locales')" id="nav-locales"><span class="ni">📍</span> LOCALES</button>
-    <button class="nav-item" onclick="sw('respuestas')" id="nav-respuestas"><span class="ni">📋</span> RESPUESTAS</button>
+    <button class="nav-item" onclick="sw('pedidos')" id="nav-pedidos">📦 PEDIDOS</button>
+    <button class="nav-item" onclick="sw('locales')" id="nav-locales">📍 LOCALES</button>
+    <button class="nav-item" onclick="sw('respuestas')" id="nav-respuestas">📋 RESPUESTAS</button>
   </div>
 </nav>
 
 <header class="topbar">
-  <div class="topbar-left">
-    <button class="hamburger" onclick="toggleSidebar()">☰</button>
-    <div>
-      <div class="page-title" id="pageTitle">Resumen General</div>
-      <div class="page-subtitle" id="pageSubtitle">Conectando...</div>
-    </div>
+  <div>
+    <div id="pageTitle" style="font-weight:700; font-size:16px">Resumen General</div>
+    <div id="pageSubtitle" style="font-size:12px; color:var(--gray-400)">Sincronizando con la nube...</div>
   </div>
-  <div class="topbar-right">
+  <div style="display:flex;align-items:center;gap:15px">
     <span class="status-dot" id="connDot"></span>
-    <span class="lupd" id="lupd"></span>
-    <button class="btn btn-primary" onclick="loadData(true)">ACTUALIZAR</button>
+    <button class="btn" style="padding:7px 14px; border-radius:8px; cursor:pointer" onclick="loadData(true)">ACTUALIZAR</button>
   </div>
 </header>
 
 <div class="main" id="stateWrap">
-  <div class="content" style="display:flex;align-items:center;justify-content:center;min-height:80vh">
-    <div class="loading"><div class="spinner"></div><span id="loadMsg">Estableciendo conexión segura con Google Sheets…</span></div>
+  <div class="content" style="text-align:center;padding-top:100px">
+    <div id="loadMsg">Conectando con Google Sheets...</div>
   </div>
 </div>
 
 <div class="main" id="mainWrap" style="display:none">
   <div class="content">
-    <div class="fbar">
-      <span class="fbar-label">Corte</span>
-      <select id="fCorte" onchange="applyFilters()"><option value="">Todos</option></select>
-      <span class="fbar-label">Cadena</span>
-      <select id="fCadena" onchange="applyFilters()"><option value="">Todas</option></select>
-      <input type="text" id="fLocal" placeholder="Buscar PDV…" oninput="applyFilters()" style="min-width:200px">
+    
+    <div style="background:#fff; padding:12px; border:1px solid #e2e8f0; border-radius:10px; display:flex; gap:10px; margin-bottom:20px; align-items:center">
+        <span style="font-size:11px; font-weight:700; color:#64748b">CORTE:</span>
+        <select id="fCorte" onchange="applyFilters()" style="padding:5px; border-radius:6px; font-size:12px"></select>
+        <span style="font-size:11px; font-weight:700; color:#64748b">CADENA:</span>
+        <select id="fCadena" onchange="applyFilters()" style="padding:5px; border-radius:6px; font-size:12px"></select>
+        <input type="text" id="fLocal" placeholder="Buscar local..." oninput="applyFilters()" style="padding:5px; border-radius:6px; font-size:12px; border:1px solid #e2e8f0">
     </div>
 
     <div class="pane active" id="pane-resumen">
       <div class="kpi-grid" id="kpiGrid"></div>
-      <div class="card">
-        <div class="card-header"><div class="card-title">Comparativa de Precios por Corte</div></div>
-        <div class="card-body"><div style="height:350px"><canvas id="chPrecios"></canvas></div></div>
+      <div style="display:grid; grid-template-columns: 2fr 1fr; gap:16px">
+        <div class="card">
+          <div style="padding:20px; font-weight:700; border-bottom:1px solid #f1f5f9">💰 Precio Promedio por Corte</div>
+          <div style="padding:20px; height:300px"><canvas id="chPrecios"></canvas></div>
+        </div>
+        <div class="card" id="difPanel"></div>
       </div>
     </div>
 
@@ -162,12 +112,12 @@ tbody td{padding:9px 12px;border-bottom:1px solid var(--gray-100);color:var(--gr
       <div class="card"><div class="tbl-wrap"><table><thead><tr id="preciosTblHead"></tr></thead><tbody id="tblPrecios"></tbody></table></div></div>
     </div>
 
-    <div class="pane" id="pane-cobertura">
-      <div class="card"><div class="tbl-wrap"><table><thead><tr><th>LOCAL</th><th>CADENA</th><th>ESTADO</th><th>PRECIO MIN.</th><th>PRECIO COMP.</th></tr></thead><tbody id="tblCobertura"></tbody></table></div></div>
-    </div>
-
     <div class="pane" id="pane-competencia">
       <div class="card"><div class="tbl-wrap" id="compTabla"></div></div>
+    </div>
+
+    <div class="pane" id="pane-cobertura">
+      <div class="card"><div class="tbl-wrap"><table><thead><tr><th>LOCAL</th><th>CADENA</th><th>ESTADO</th><th>PRECIO MIN.</th><th>PRECIO COMP.</th></tr></thead><tbody id="tblCobCat"></tbody></table></div></div>
     </div>
 
     <div class="pane" id="pane-pedidos">
@@ -181,66 +131,53 @@ tbody td{padding:9px 12px;border-bottom:1px solid var(--gray-100);color:var(--gr
     <div class="pane" id="pane-respuestas">
       <div class="card"><div class="tbl-wrap"><table><thead><tr id="respTblHead"></tr></thead><tbody id="tblResp"></tbody></table></div></div>
     </div>
+
   </div>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════════
-   SISTEMA DE DATOS Y CONEXIÓN
-═══════════════════════════════════════════════════════ */
-const SHEET_URLS = {
+/* URLs exactas del formato adjunto */
+const SHEET_URLS={
+  locales: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSNckXvP0nhh8ZBmHOER3EfWO7y_PEaPfeLcEcWyKlNffuaW6tFDRpFkLWJnlsaMkY8FsbpScZsaIv6/pub?output=csv',
+  pedidos: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQjJfvWVC37EMGAlxG2qsxbiN2NcSs3pK_V5gPqLWdW1VIdaxPfrfh3tJPVXjrU5waeAOGSU-995d7u/pub?output=csv',
+  competencia: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXRis6q-eyM8NhBokbtaXCJDu6tpU1U3MK51Q7aOtZWihsSejDLlb7wOoGKxQ1NDcYtjl1ISi0ti3x/pub?output=csv',
   respuestas: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSMgOxKbxLf61TNIiKKEegElOSvAz-dxHWgw591McciGAo1cZUpxw106K-1dM3eM_edxusFYal_AIuU/pub?output=csv',
-  locales:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vSNckXvP0nhh8ZBmHOER3EfWO7y_PEaPfeLcEcWyKlNffuaW6tFDRpFkLWJnlsaMkY8FsbpScZsaIv6/pub?output=csv',
-  competencia:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXRis6q-eyM8NhBokbtaXCJDu6tpU1U3MK51Q7aOtZWihsSejDLlb7wOoGKxQ1NDcYtjl1ISi0ti3x/pub?output=csv',
-  pedidos:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQjJfvWVC37EMGAlxG2qsxbiN2NcSs3pK_V5gPqLWdW1VIdaxPfrfh3tJPVXjrU5waeAOGSU-995d7u/pub?output=csv'
 };
 
-const FRIGO_BRANDS = new Set(['PUL', 'PUL SELECCION', 'PUL REGULAR', 'ESTANCIA 92', 'ESTANCIA 92 ANGUS']);
+const FRIGO_BRANDS=new Set(['MINERVA','PUL','ESTANCIA 92','FRIGOMERC','PUL SELECCION']);
 
-let RAW=[], filtered=[], DS_RESPUESTAS={headers:[], rows:[]}, DS_LOCALES=[], DS_PEDIDOS=[];
-let activeTab='resumen';
-const charts={};
+let RAW=[], filtered=[], DS_RESPUESTAS={headers:[],rows:[]}, DS_LOCALES=[], DS_PEDIDOS=[];
+let charts={};
 
 async function fetchSecure(url) {
-  const attempts = [
-    url,
-    `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
-  ];
+  const attempts = [url, `https://corsproxy.io/?${encodeURIComponent(url)}`, `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` ];
   for (let a of attempts) {
     try {
       const r = await fetch(a, { cache: 'no-store' });
-      if (r.ok) {
-        const text = await r.text();
-        if (text.length > 500) return text;
-      }
+      if (r.ok) { const text = await r.text(); if (text.length > 100) return text; }
     } catch(e) {}
   }
-  throw new Error("No se pudo conectar tras varios intentos (CORS/408).");
+  throw new Error("No se pudo conectar tras 3 intentos.");
 }
 
 function parseCSV(t) {
   const lines = t.split('\n').filter(l=>l.trim());
-  if(!lines.length) return {headers:[], rows:[]};
   const headers = lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
-  const rows = lines.slice(1).map(l=>{
-    let cells=[], cur='', inQ=false;
-    for(let c of l){
-      if(c==='"') inQ=!inQ;
-      else if(c===',' && !inQ){ cells.push(cur.trim()); cur=''; }
-      else cur+=c;
-    }
-    cells.push(cur.trim());
-    return cells;
+  const rows = lines.slice(1).map(l => {
+      let cells=[], cur='', inQ=false;
+      for(let c of l){
+          if(c==='"') inQ=!inQ;
+          else if(c===',' && !inQ){ cells.push(cur.trim().replace(/"/g,'')); cur=''; }
+          else cur+=c;
+      }
+      cells.push(cur.trim().replace(/"/g,''));
+      return cells;
   });
   return {headers, rows};
 }
 
 async function loadData(manual=false) {
-  if(manual) {
-    document.getElementById('stateWrap').style.display='block';
-    document.getElementById('mainWrap').style.display='none';
-  }
+  if(manual) { document.getElementById('stateWrap').style.display='block'; document.getElementById('mainWrap').style.display='none'; }
   try {
     const csvTxt = await fetchSecure(SHEET_URLS.respuestas);
     DS_RESPUESTAS = parseCSV(csvTxt);
@@ -249,16 +186,15 @@ async function loadData(manual=false) {
     const LI=hi('local'), CI=hi('corte'), MI=hi('marca'), PI=hi('precio');
 
     RAW = DS_RESPUESTAS.rows.map(r => {
-      const local = r[LI] || 'PDV', corte = r[CI] || 'Varios';
-      const marca = (r[MI]||'').toUpperCase();
-      const esFrigo = Array.from(FRIGO_BRANDS).some(b => marca.includes(b) || corte.toUpperCase().includes(b));
+      const m = (r[MI]||'').toUpperCase();
+      const esMinerva = Array.from(FRIGO_BRANDS).some(b => m.includes(b));
       return { 
-        local, corte, 
-        tipo: esFrigo ? 'FRIGO' : 'COMPETENCIA', 
+        local: r[LI] || 'PDV', corte: r[CI] || 'Varios', 
+        tipo: esMinerva ? 'FRIGO' : 'COMPETENCIA', 
         precio: parseFloat(String(r[PI]||'0').replace(/[^\d.]/g,'')) || 0,
-        cadena: local.toUpperCase().includes('BIGGIE') ? 'BIGGIE' : 'OTROS'
+        cadena: (r[LI]||'').toUpperCase().includes('BIGGIE') ? 'BIGGIE' : 'OTROS'
       };
-    }).filter(r => r.precio > 5000);
+    }).filter(r => r.precio > 0);
 
     filtered = RAW;
     populateFilters();
@@ -269,15 +205,11 @@ async function loadData(manual=false) {
     document.getElementById('connDot').className='status-dot';
     document.getElementById('pageSubtitle').textContent = `${RAW.length.toLocaleString()} registros sincronizados`;
   } catch(e) {
-    document.getElementById('loadMsg').innerHTML = `<span style="color:red">Error: ${e.message}</span>`;
+    document.getElementById('loadMsg').innerHTML = `<span style="color:red">${e.message}</span>`;
   }
 }
 
-/* ═══════════════════════════════════════════════════════
-   FUNCIONES DE RENDERIZADO (RESTAURADAS)
-═══════════════════════════════════════════════════════ */
 function sw(t) {
-  activeTab = t;
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.id===`nav-${t}`));
   document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id===`pane-${t}`));
   document.getElementById('pageTitle').textContent = t.toUpperCase();
@@ -285,31 +217,24 @@ function sw(t) {
 }
 
 function renderCurrent() {
-  if(activeTab==='resumen') renderResumen();
-  if(activeTab==='precios') renderPrecios();
-  if(activeTab==='cobertura') renderCobertura();
-  if(activeTab==='competencia') renderCompetencia();
-  if(activeTab==='pedidos') renderPedidos();
-  if(activeTab==='locales') renderLocales();
-  if(activeTab==='respuestas') renderRespuestas();
-}
-
-function renderResumen() {
   const f = filtered.filter(r=>r.tipo==='FRIGO'), c = filtered.filter(r=>r.tipo==='COMPETENCIA');
-  const avg = arr => arr.length ? arr.reduce((s,v)=>s+v.precio,0)/arr.length : 0;
+  const avg = a => a.length ? a.reduce((s,v)=>s+v.precio,0)/a.length : 0;
   const pF = avg(f), pC = avg(c);
 
-  document.getElementById('kpiGrid').innerHTML = `
-    <div class="kpi-card" style="--kpi-color:#0ea5e9"><div class="kpi-label">RELEVAMIENTOS</div><div class="kpi-value">${filtered.length.toLocaleString()}</div></div>
-    <div class="kpi-card" style="--kpi-color:#10b981"><div class="kpi-label">AVG MINERVA</div><div class="kpi-value">Gs. ${Math.round(pF).toLocaleString()}</div></div>
-    <div class="kpi-card" style="--kpi-color:#94a3b8"><div class="kpi-label">AVG COMPETENCIA</div><div class="kpi-value">Gs. ${Math.round(pC).toLocaleString()}</div></div>
-    <div class="kpi-card" style="--kpi-color:#f59e0b"><div class="kpi-label">PDVs</div><div class="kpi-value">${new Set(filtered.map(r=>r.local)).size}</div></div>
-  `;
-  renderChart(f, c);
+  if(document.getElementById('kpiGrid')) {
+    document.getElementById('kpiGrid').innerHTML = `
+      <div class="kpi-card"><div>REGISTROS</div><div style="font-size:24px;font-weight:700">${filtered.length}</div></div>
+      <div class="kpi-card"><div>MINERVA</div><div style="font-size:24px;font-weight:700">Gs. ${Math.round(pF).toLocaleString()}</div></div>
+      <div class="kpi-card"><div>COMPETENCIA</div><div style="font-size:24px;font-weight:700">Gs. ${Math.round(pC).toLocaleString()}</div></div>
+      <div class="kpi-card"><div>PDV</div><div style="font-size:24px;font-weight:700">${new Set(filtered.map(r=>r.local)).size}</div></div>
+    `;
+  }
+  
+  if(document.getElementById('chPrecios')) renderChart(f, c);
 }
 
 function renderChart(f, c) {
-  const cuts = [...new Set(filtered.map(r=>r.corte))].slice(0,10);
+  const cuts = [...new Set(filtered.map(r=>r.corte))].slice(0,8);
   const getAvg = (arr, cut) => {
     const sub = arr.filter(r=>r.corte===cut);
     return sub.length ? Math.round(sub.reduce((s,v)=>s+v.precio,0)/sub.length) : 0;
@@ -327,38 +252,6 @@ function renderChart(f, c) {
     },
     options: { responsive: true, maintainAspectRatio: false }
   });
-}
-
-function renderPrecios() {
-  document.getElementById('preciosTblHead').innerHTML = '<th>LOCAL</th><th>CORTE</th><th>TIPO</th><th>PRECIO (Gs.)</th>';
-  document.getElementById('tblPrecios').innerHTML = filtered.slice(0,100).map(r=>`<tr><td>${r.local}</td><td>${r.corte}</td><td>${r.tipo}</td><td>${r.precio.toLocaleString()}</td></tr>`).join('');
-}
-
-function renderCobertura() {
-  const pdvs = [...new Set(filtered.map(r=>r.local))].slice(0,50);
-  document.getElementById('tblCobertura').innerHTML = pdvs.map(l => {
-    const d = filtered.filter(r=>r.local===l);
-    const hasM = d.some(r=>r.tipo==='FRIGO');
-    return `<tr><td>${l}</td><td>OTROS</td><td>${hasM?'✅ PRESENTE':'❌ AUSENTE'}</td><td>-</td><td>-</td></tr>`;
-  }).join('');
-}
-
-function renderCompetencia() {
-  document.getElementById('compTabla').innerHTML = "Módulo de competencia activo con marcas PUL y ESTANCIA 92.";
-}
-
-function renderPedidos() {
-  document.getElementById('pedidosTblHead').innerHTML = '<th>LOCAL</th><th>CORTE</th><th>KILOS</th>';
-  document.getElementById('tblCruce').innerHTML = '<tr><td colspan="3">Sincronizando con hoja de pedidos...</td></tr>';
-}
-
-function renderLocales() {
-  document.getElementById('localesContent').innerHTML = "Directorio de locales cargado.";
-}
-
-function renderRespuestas() {
-  document.getElementById('respTblHead').innerHTML = DS_RESPUESTAS.headers.map(h=>`<th>${h}</th>`).join('');
-  document.getElementById('tblResp').innerHTML = DS_RESPUESTAS.rows.slice(0,100).map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('');
 }
 
 function populateFilters(){
@@ -382,16 +275,6 @@ function applyFilters() {
   filtered = RAW.filter(r => (!c || r.corte===c) && (!cad || r.cadena===cad) && (!l || r.local.toLowerCase().includes(l)));
   renderCurrent();
 }
-
-function resetFilters() {
-  document.getElementById('fCorte').value='';
-  document.getElementById('fCadena').value='';
-  document.getElementById('fLocal').value='';
-  filtered = RAW;
-  renderCurrent();
-}
-
-function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); }
 
 loadData();
 </script>
