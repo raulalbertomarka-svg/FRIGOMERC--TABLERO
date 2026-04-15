@@ -940,21 +940,70 @@ function renderDifPanel(data){
 }
 
 function renderPreciosChart(data){
+  // Construir mapa corte → { Minerva: [], MARCA_X: [], ... }
   const cgMap={};
-  data.forEach(r=>{if(!r.cg)return;if(!cgMap[r.cg])cgMap[r.cg]={byM:{}};if(!cgMap[r.cg].byM[r.marca])cgMap[r.cg].byM[r.marca]=[];if(r.precio)cgMap[r.cg].byM[r.marca].push(r.precio);});
+  data.forEach(r=>{
+    if(!r.cg||!r.precio)return;
+    if(!cgMap[r.cg])cgMap[r.cg]={};
+    if(!cgMap[r.cg][r.marca])cgMap[r.cg][r.marca]=[];
+    cgMap[r.cg][r.marca].push(r.precio);
+  });
+
+  // Todas las marcas competencia ordenadas por presencia (locales únicos)
   const mLocs={};
-  data.filter(r=>r.tipo==='COMPETENCIA').forEach(r=>{if(!mLocs[r.marca])mLocs[r.marca]=new Set();mLocs[r.marca].add(r.local);});
-  const topMarcas=Object.entries(mLocs).sort((a,b)=>b[1].size-a[1].size).slice(0,2).map(([m])=>m);
+  data.filter(r=>r.tipo==='COMPETENCIA').forEach(r=>{
+    if(!mLocs[r.marca])mLocs[r.marca]=new Set();
+    mLocs[r.marca].add(r.local);
+  });
+  const todasMarcas=Object.entries(mLocs)
+    .sort((a,b)=>b[1].size-a[1].size)
+    .map(([m])=>m); // TODAS, sin slice
+
   const allCg=Object.keys(cgMap);
   const topFirst=TOP_CORTES.filter(c=>allCg.includes(c));
   const others=allCg.filter(c=>!TOP_CORTES.includes(c));
-  let rows=[...topFirst,...others].map(k=>({k,pF:avg(cgMap[k].byM['Minerva']||[]),byM:Object.fromEntries(topMarcas.map(m=>[m,avg(cgMap[k].byM[m]||[])]))})).filter(r=>r.pF&&r.pF<400000&&topMarcas.some(m=>r.byM[m]&&r.byM[m]<400000));
-  if(chartMode==='top')rows=rows.slice(0,8);
-  const BRAND_COLORS=['#f43f5e','#f97316','#a855f7','#0ea5e9'];
-  const cfg={type:'bar',data:{labels:rows.map(r=>r.k.length>20?r.k.slice(0,19)+'.':r.k),datasets:[{label:'Minerva',data:rows.map(r=>r.pF?Math.round(r.pF):null),backgroundColor:'#0ea5e9',borderRadius:6,borderSkipped:false,borderWidth:0},...topMarcas.map((m,i)=>({label:m,data:rows.map(r=>r.byM[m]?Math.round(r.byM[m]):null),backgroundColor:BRAND_COLORS[i]||'#94a3b8',borderRadius:6,borderSkipped:false,borderWidth:0}))]},options:{...BASE(),indexAxis:'y',plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:10,color:'#334155',padding:16,usePointStyle:true,pointStyle:'circle'}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': Gs. '+gs(ctx.raw)}}},scales:{x:{ticks:{callback:v=>gs(v),font:{size:9},color:'#94a3b8'},grid:{color:'#f1f5f9'},border:{display:false}},y:{ticks:{font:{size:11,weight:'500'},color:'#1e293b',padding:6},grid:{display:false},border:{display:false}}}}};
+  let rows=[...topFirst,...others]
+    .map(k=>({
+      k,
+      pF:avg(cgMap[k]['Minerva']||[]),
+      byM:Object.fromEntries(todasMarcas.map(m=>[m,avg(cgMap[k][m]||[])]))
+    }))
+    .filter(r=>r.pF&&r.pF<400000 && todasMarcas.some(m=>r.byM[m]&&r.byM[m]<400000));
+
+  if(chartMode==='top') rows=rows.slice(0,8);
+
+  // Paleta ampliada para muchas marcas
+  const BRAND_COLORS=['#f43f5e','#f97316','#a855f7','#10b981','#eab308','#06b6d4','#ec4899','#84cc16','#6366f1','#14b8a6'];
+
+  const cfg={
+    type:'bar',
+    data:{
+      labels:rows.map(r=>r.k.length>22?r.k.slice(0,21)+'…':r.k),
+      datasets:[
+        {label:'Minerva',data:rows.map(r=>r.pF?Math.round(r.pF):null),backgroundColor:'#0ea5e9',borderRadius:5,borderSkipped:false,borderWidth:0},
+        ...todasMarcas.map((m,i)=>({
+          label:m,
+          data:rows.map(r=>r.byM[m]?Math.round(r.byM[m]):null),
+          backgroundColor:BRAND_COLORS[i%BRAND_COLORS.length],
+          borderRadius:5,borderSkipped:false,borderWidth:0
+        }))
+      ]
+    },
+    options:{
+      ...BASE(),
+      indexAxis:'y',
+      plugins:{
+        legend:{position:'top',labels:{font:{size:10},boxWidth:10,color:'#334155',padding:12,usePointStyle:true,pointStyle:'circle'}},
+        tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': Gs. '+gs(ctx.raw)}}
+      },
+      scales:{
+        x:{ticks:{callback:v=>gs(v),font:{size:9},color:'#94a3b8'},grid:{color:'#f1f5f9'},border:{display:false}},
+        y:{ticks:{font:{size:10,weight:'500'},color:'#1e293b',padding:4},grid:{display:false},border:{display:false}}
+      }
+    }
+  };
   mkChart('chPrecios',cfg);
-  // Also update precios main chart
-  mkChart('chPreciosMain',{...cfg,options:{...cfg.options,plugins:{...cfg.options.plugins}}});
+  mkChart('chPreciosMain',cfg);
 }
 
 function setChartMode(m){chartMode=m;document.getElementById('tabBar').classList.toggle('active',m==='bar');document.getElementById('tabTop').classList.toggle('active',m==='top');renderPreciosChart(filtered);}
@@ -1044,30 +1093,51 @@ function renderPrecios(){
       <div class="kpi-sub">Minerva ${diff&&diff<0?'más económica':'más cara'}</div>
     </div>`;
 
-  // Build table
-  const cg={};
-  data.forEach(r=>{if(!r.cg)return;if(!cg[r.cg])cg[r.cg]={f:[],c:[],...Object.fromEntries(ALL_BRANDS.map(b=>[b,[]]))};
-    if(r.tipo==='FRIGO'&&r.precio)cg[r.cg].f.push(r.precio);
-    if(r.tipo==='COMPETENCIA'&&r.precio){cg[r.cg].c.push(r.precio);const bk=ALL_BRANDS.find(b=>r.marca===b||r.marca.includes(b));if(bk)cg[r.cg][bk].push(r.precio);}
+  // Tabla detallada: marcas dinámicas desde los datos
+  const cgMap2={};
+  data.forEach(r=>{
+    if(!r.cg||!r.precio)return;
+    if(!cgMap2[r.cg])cgMap2[r.cg]={f:[],c:{}};
+    if(r.tipo==='FRIGO') cgMap2[r.cg].f.push(r.precio);
+    if(r.tipo==='COMPETENCIA'){
+      if(!cgMap2[r.cg].c[r.marca])cgMap2[r.cg].c[r.marca]=[];
+      cgMap2[r.cg].c[r.marca].push(r.precio);
+    }
   });
-  const rows=Object.entries(cg).filter(([,v])=>v.f.length||v.c.length).map(([k,v])=>({k,af:avg(v.f),ac:avg(v.c),brands:Object.fromEntries(ALL_BRANDS.map(b=>[b,avg(v[b])])),n:v.f.length+v.c.length}));
-  const topFirst=TOP_CORTES.filter(c=>rows.find(r=>r.k===c));
-  const sortedRows=[...rows.filter(r=>TOP_CORTES.includes(r.k)),...rows.filter(r=>!TOP_CORTES.includes(r.k))];
-  const topB=ALL_BRANDS.filter(b=>sortedRows.some(r=>r.brands[b])).slice(0,4);
+
+  // Todas las marcas competencia presentes en los datos
+  const marcasPresentes=[...new Set(
+    data.filter(r=>r.tipo==='COMPETENCIA'&&r.marca).map(r=>r.marca)
+  )].sort((a,b)=>{
+    // Ordenar por cantidad de registros desc
+    const ca=data.filter(r=>r.marca===a).length;
+    const cb=data.filter(r=>r.marca===b).length;
+    return cb-ca;
+  });
+
+  const sortedRows=Object.entries(cgMap2)
+    .map(([k,v])=>({k, af:avg(v.f), ac:avg(Object.values(v.c).flat()), byMarca:v.c}))
+    .filter(r=>r.af||r.ac)
+    .sort((a,b)=>{
+      const ia=TOP_CORTES.indexOf(a.k), ib=TOP_CORTES.indexOf(b.k);
+      if(ia>=0&&ib>=0) return ia-ib;
+      if(ia>=0) return -1; if(ib>=0) return 1;
+      return 0;
+    });
 
   const head=document.getElementById('preciosTblHead');
-  if(head)head.innerHTML=`<th>CORTE</th><th>MINERVA</th>${topB.map(b=>`<th>${b}</th>`).join('')}<th>DIF. MEJOR COMP.</th>`;
+  if(head)head.innerHTML=`<th>CORTE</th><th style="background:#eff6ff">MINERVA</th>${marcasPresentes.map(b=>`<th>${b}</th>`).join('')}<th>DIF. %</th>`;
 
   document.getElementById('tblPrecios').innerHTML=sortedRows.map((r,i)=>{
     const dif=r.af&&r.ac?(r.af-r.ac)/r.ac*100:null;
     const isTop=TOP_CORTES.includes(r.k);
     return`<tr style="background:${i%2?'var(--gray-50)':'#fff'}${isTop?';font-weight:600':''}">
       <td>${r.k}${isTop?` <span class="tag tag-biggie" style="font-size:9px">TOP</span>`:''}</td>
-      <td style="font-weight:700;color:var(--blue)">${r.af?'Gs. '+gs(r.af):'—'}</td>
-      ${topB.map(b=>`<td>${r.brands[b]?'Gs. '+gs(r.brands[b]):'—'}</td>`).join('')}
+      <td style="font-weight:700;color:var(--blue);background:#f8faff">${r.af?'Gs. '+gs(r.af):'—'}</td>
+      ${marcasPresentes.map(b=>`<td>${avg(r.byMarca[b]||[])?'Gs. '+gs(avg(r.byMarca[b])):'—'}</td>`).join('')}
       <td>${dif!==null?diffBadge(dif):'—'}</td>
     </tr>`;
-  }).join('')||'<tr><td colspan="8" class="empty">Sin datos</td></tr>';
+  }).join('')||'<tr><td colspan="'+(3+marcasPresentes.length)+'" class="empty">Sin datos</td></tr>';
 
   renderPreciosPorLocal();
 }
@@ -1084,29 +1154,99 @@ function renderCompetencia(){
     if(!mCortes[r.marca])mCortes[r.marca]={};if(r.cg)mCortes[r.marca][r.cg]=(mCortes[r.marca][r.cg]||0)+1;
   });
   const pMinerva=avg(data.filter(r=>r.tipo==='FRIGO').map(r=>r.precio).filter(Boolean));
-  const topMarcas=Object.entries(mLocs).sort((a,b)=>b[1].size-a[1].size).slice(0,5);
+  // Todas las marcas, sin slice
+  const todasMarcasComp=Object.entries(mLocs).sort((a,b)=>b[1].size-a[1].size);
   const frigoCnt=new Set(data.filter(r=>r.tipo==='FRIGO').map(r=>r.local)).size;
 
+  // KPIs: Minerva + top 2 competidores
   document.getElementById('kpiComp').innerHTML=`
     ${kpiCard('🏪','Minerva Presente',frigoCnt,'locales relevados','#3b82f6','#eff6ff')}
-    ${topMarcas.slice(0,2).map(([m,s],i)=>{const pM=avg(mPrecios[m]||[]);const dif=pMinerva&&pM?(pMinerva-pM)/pM*100:null;return`<div class="kpi-card" style="--kpi-color:${i===0?'#ef4444':'#f97316'};--kpi-bg:${i===0?'#fef2f2':'#fff7ed'}"><div class="kpi-icon">${i===0?'🥇':'🥈'}</div><div class="kpi-label">${m}</div><div class="kpi-value" style="font-size:22px">${s.size}</div><div class="kpi-sub">${pM?'Gs. '+gs(pM)+' '+(dif!==null?diffBadge(dif):''):''}</div></div>`;}).join('')}`;
+    ${todasMarcasComp.slice(0,2).map(([m,s],i)=>{const pM=avg(mPrecios[m]||[]);const dif=pMinerva&&pM?(pMinerva-pM)/pM*100:null;return`<div class="kpi-card" style="--kpi-color:${i===0?'#ef4444':'#f97316'};--kpi-bg:${i===0?'#fef2f2':'#fff7ed'}"><div class="kpi-icon">${i===0?'🥇':'🥈'}</div><div class="kpi-label">${m}</div><div class="kpi-value" style="font-size:22px">${s.size}</div><div class="kpi-sub">${pM?'Gs. '+gs(pM)+' '+(dif!==null?diffBadge(dif):''):''}</div></div>`;}).join('')}
+    ${kpiCard('⚔️','Competidores',todasMarcasComp.length,'marcas detectadas','#8b5cf6','#f5f3ff')}`;
 
-  document.getElementById('compTabla').innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--gray-50)"><th style="padding:9px 12px;font-size:10px;color:var(--gray-500);font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--gray-200)">MARCA</th><th style="padding:9px 12px;text-align:center;font-size:10px;color:var(--gray-500);font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--gray-200)">LOCALES</th><th style="padding:9px 12px;text-align:center;font-size:10px;color:var(--gray-500);font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--gray-200)">PRECIO PROM.</th><th style="padding:9px 12px;text-align:center;font-size:10px;color:var(--gray-500);font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--gray-200)">VS MINERVA</th><th style="padding:9px 12px;text-align:center;font-size:10px;color:var(--gray-500);font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--gray-200)">DIF. %</th><th style="padding:9px 12px;font-size:10px;color:var(--gray-500);font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--gray-200)">CORTES TOP</th><th style="padding:9px 12px;text-align:center;font-size:10px;color:var(--gray-500);font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--gray-200)">AMENAZA</th></tr></thead><tbody>
-    ${Object.entries(mLocs).sort((a,b)=>b[1].size-a[1].size).map(([m,locs],i)=>{
-      const pM=avg(mPrecios[m]||[]);const dif=pMinerva&&pM?(pMinerva-pM)/pM*100:null;const difGs=pMinerva&&pM?Math.round(pMinerva-pM):null;
-      const topCg=Object.entries(mCortes[m]||{}).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([c])=>c);
-      const amenaza=locs.size>100?'🔴 ALTA':locs.size>30?'🟡 MEDIA':'⚪ BAJA';
-      return`<tr style="background:${i%2?'var(--gray-50)':'#fff'}"><td style="padding:9px 12px;font-weight:700;color:var(--gray-800)">${m}</td><td style="padding:9px 12px;text-align:center;font-weight:700;color:${locs.size>100?'var(--red)':locs.size>30?'var(--amber)':'var(--gray-600)'}">${locs.size}</td><td style="padding:9px 12px;text-align:center">${pM?'Gs. '+gs(pM):'—'}</td><td style="padding:9px 12px;text-align:center">${difGs!==null?'Gs. '+gs(Math.abs(difGs))+(difGs<0?' más caro':' más ec.'):'—'}</td><td style="padding:9px 12px;text-align:center">${dif!==null?diffBadge(dif):'—'}</td><td style="padding:9px 12px;font-size:11px;color:var(--gray-500)">${topCg.join(', ')||'—'}</td><td style="padding:9px 12px;text-align:center">${amenaza}</td></tr>`;
-    }).join('')}
-    </tbody></table>`;
+  // Tabla completa — TODAS las marcas
+  const th='style="padding:9px 12px;font-size:10px;color:var(--gray-500);font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--gray-200);text-align:';
+  document.getElementById('compTabla').innerHTML=`
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--gray-50)">
+        <th ${th}left">MARCA</th>
+        <th ${th}center">LOCALES</th>
+        <th ${th}center">PRECIO PROM.</th>
+        <th ${th}center">VS MINERVA Gs.</th>
+        <th ${th}center">DIF. %</th>
+        <th ${th}left">CORTES TOP</th>
+        <th ${th}center">AMENAZA</th>
+      </tr></thead>
+      <tbody>
+      ${todasMarcasComp.map(([m,locs],i)=>{
+        const pM=avg(mPrecios[m]||[]);
+        const dif=pMinerva&&pM?(pMinerva-pM)/pM*100:null;
+        const difGs=pMinerva&&pM?Math.round(pMinerva-pM):null;
+        const topCg=Object.entries(mCortes[m]||{}).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([c])=>c);
+        const amenaza=locs.size>100?'🔴 ALTA':locs.size>30?'🟡 MEDIA':'⚪ BAJA';
+        const bg=i%2?'var(--gray-50)':'#fff';
+        return`<tr style="background:${bg}">
+          <td style="padding:9px 12px;font-weight:700;color:var(--gray-800)">${m}</td>
+          <td style="padding:9px 12px;text-align:center;font-weight:700;color:${locs.size>100?'var(--red)':locs.size>30?'var(--amber)':'var(--gray-600)'}">${locs.size}</td>
+          <td style="padding:9px 12px;text-align:center">${pM?'Gs. '+gs(pM):'—'}</td>
+          <td style="padding:9px 12px;text-align:center;color:${difGs&&difGs<0?'var(--green)':'var(--red)'}">${difGs!==null?'Gs. '+gs(Math.abs(difGs))+(difGs<0?' más caro':' más ec.'):'—'}</td>
+          <td style="padding:9px 12px;text-align:center">${dif!==null?diffBadge(dif):'—'}</td>
+          <td style="padding:9px 12px;font-size:11px;color:var(--gray-500)">${topCg.join(', ')||'—'}</td>
+          <td style="padding:9px 12px;text-align:center">${amenaza}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>`;
 
-  const chartMarcas=Object.entries(mLocs).sort((a,b)=>b[1].size-a[1].size).slice(0,10);
-  const CC=['#ef4444','#f97316','#f59e0b','#84cc16','#10b981','#0ea5e9','#6366f1','#a855f7','#f43f5e','#14b8a6'];
-  mkChart('chMarcas',{type:'bar',data:{labels:chartMarcas.map(([m])=>m),datasets:[{label:'Locales',data:chartMarcas.map(([,s])=>s.size),backgroundColor:CC,borderRadius:5,borderSkipped:false}]},options:{...BASE(),indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.raw+' locales'}}},scales:{x:{ticks:{font:{size:9},color:'#94a3b8'},grid:{color:'#f1f5f9'},border:{display:false}},y:{ticks:{font:{size:10,weight:'600'},color:'#1e293b'},grid:{display:false},border:{display:false}}}}});
+  // Gráfico presencia — todas las marcas
+  const CC=['#ef4444','#f97316','#f59e0b','#84cc16','#10b981','#0ea5e9','#6366f1','#a855f7','#f43f5e','#14b8a6','#fb923c','#a3e635','#34d399','#38bdf8','#818cf8'];
+  mkChart('chMarcas',{
+    type:'bar',
+    data:{
+      labels:todasMarcasComp.map(([m])=>m.length>20?m.slice(0,19)+'…':m),
+      datasets:[{
+        label:'Locales con presencia',
+        data:todasMarcasComp.map(([,s])=>s.size),
+        backgroundColor:todasMarcasComp.map((_,i)=>CC[i%CC.length]),
+        borderRadius:5,borderSkipped:false
+      }]
+    },
+    options:{
+      ...BASE(),indexAxis:'y',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.raw+' locales'}}},
+      scales:{
+        x:{ticks:{font:{size:9},color:'#94a3b8'},grid:{color:'#f1f5f9'},border:{display:false}},
+        y:{ticks:{font:{size:10,weight:'600'},color:'#1e293b'},grid:{display:false},border:{display:false}}
+      }
+    }
+  });
 
-  const mpC=Object.entries(mPrecios).filter(([,v])=>v.length>0).sort((a,b)=>b[1].length-a[1].length).slice(0,6);
-  const pChart=[{name:'Minerva',val:pMinerva},...mpC.map(([m,v])=>({name:m,val:avg(v)}))].filter(x=>x.val);
-  mkChart('chCompDisp',{type:'bar',data:{labels:pChart.map(x=>x.name),datasets:[{label:'Gs.',data:pChart.map(x=>Math.round(x.val)),backgroundColor:pChart.map((x,i)=>i===0?'#0ea5e9':CC[i-1]),borderRadius:5,borderSkipped:false}]},options:{...BASE(),plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' Gs. '+gs(ctx.raw)}}},scales:{x:{ticks:{font:{size:9,weight:'600'},color:'#334155'},grid:{display:false},border:{display:false}},y:{ticks:{callback:v=>gs(v),font:{size:9},color:'#94a3b8'},grid:{color:'#f1f5f9'},border:{display:false}}}}});
+  // Gráfico precios — todas las marcas con precio
+  const marcasConPrecio=[
+    {name:'Minerva',val:pMinerva},
+    ...todasMarcasComp.map(([m])=>({name:m,val:avg(mPrecios[m]||[])})).filter(x=>x.val)
+  ].filter(x=>x.val);
+
+  mkChart('chCompDisp',{
+    type:'bar',
+    data:{
+      labels:marcasConPrecio.map(x=>x.name.length>18?x.name.slice(0,17)+'…':x.name),
+      datasets:[{
+        label:'Precio Promedio Gs.',
+        data:marcasConPrecio.map(x=>Math.round(x.val)),
+        backgroundColor:marcasConPrecio.map((x,i)=>i===0?'#0ea5e9':CC[i-1]),
+        borderRadius:5,borderSkipped:false
+      }]
+    },
+    options:{
+      ...BASE(),
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' Gs. '+gs(ctx.raw)}}},
+      scales:{
+        x:{ticks:{font:{size:9,weight:'600'},color:'#334155'},grid:{display:false},border:{display:false}},
+        y:{ticks:{callback:v=>gs(v),font:{size:9},color:'#94a3b8'},grid:{color:'#f1f5f9'},border:{display:false}}
+      }
+    }
+  });
 }
 
 /* ═══════════════════════════════════════════════════════
