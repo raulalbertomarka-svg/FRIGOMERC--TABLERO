@@ -455,28 +455,17 @@ tbody tr:hover{background:var(--gray-50)}
 
 <script>
 /* ═══════════════════════════════════════════════════════
-   URLS  — formato CSV directo (CORS habilitado por Google)
-   Cada pubhtml se convierte a pub?output=csv
+   URLS CSV EXACTAS
 ═══════════════════════════════════════════════════════ */
-const SHEET_IDS={
-  respuestas:'2PACX-1vSMgOxKbxLf61TNIiKKEegElOSvAz-dxHWgw591McciGAo1cZUpxw106K-1dM3eM_edxusFYal_AIuU',
-  pedidos:   '2PACX-1vQjJfvWVC37EMGAlxG2qsxbiN2NcSs3pK_V5gPqLWdW1VIdaxPfrfh3tJPVXjrU5waeAOGSU-995d7u',
-  competencia:'2PACX-1vQXRis6q-eyM8NhBokbtaXCJDu6tpU1U3MK51Q7aOtZWihsSejDLlb7wOoGKxQ1NDcYtjl1ISi0ti3x',
-  locales:   '2PACX-1vSNckXvP0nhh8ZBmHOER3EfWO7y_PEaPfeLcEcWyKlNffuaW6tFDRpFkLWJnlsaMkY8FsbpScZsaIv6',
+const SHEET_URLS={
+  locales:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vSNckXvP0nhh8ZBmHOER3EfWO7y_PEaPfeLcEcWyKlNffuaW6tFDRpFkLWJnlsaMkY8FsbpScZsaIv6/pub?output=csv',
+  pedidos:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQjJfvWVC37EMGAlxG2qsxbiN2NcSs3pK_V5gPqLWdW1VIdaxPfrfh3tJPVXjrU5waeAOGSU-995d7u/pub?output=csv',
+  competencia:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXRis6q-eyM8NhBokbtaXCJDu6tpU1U3MK51Q7aOtZWihsSejDLlb7wOoGKxQ1NDcYtjl1ISi0ti3x/pub?output=csv',
+  respuestas: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSNckXvP0nhh8ZBmHOER3EfWO7y_PEaPfeLcEcWyKlNffuaW6tFDRpFkLWJnlsaMkY8FsbpScZsaIv6/pub?output=csv',
 };
 
-// Genera variantes de URL a intentar en orden
-function getURLs(id){
-  const base=`https://docs.google.com/spreadsheets/d/e/${id}/pub?output=csv`;
-  return[
-    base,
-    `https://corsproxy.io/?${encodeURIComponent(base)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`,
-  ];
-}
-
 /* ═══════════════════════════════════════════════════════
-   CSV PARSER  (maneja comillas, comas internas, \r\n)
+   CSV PARSER
 ═══════════════════════════════════════════════════════ */
 function parseCSV(text){
   const lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim().split('\n');
@@ -498,25 +487,37 @@ function parseCSV(text){
 }
 
 /* ═══════════════════════════════════════════════════════
-   FETCH CON FALLBACK DE PROXY
+   FETCH  —  CSV directo → proxy corsproxy → proxy allorigins
 ═══════════════════════════════════════════════════════ */
 async function fetchSheet(key){
-  const urls=getURLs(SHEET_IDS[key]);
-  let lastErr='';
-  for(const url of urls){
+  const csvUrl = SHEET_URLS[key];
+
+  // Orden de intentos: URL directa, luego dos proxies CORS
+  const attempts = [
+    csvUrl,
+    `https://corsproxy.io/?${encodeURIComponent(csvUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(csvUrl)}`,
+  ];
+
+  for(let i=0;i<attempts.length;i++){
+    const url=attempts[i];
     try{
       const r=await fetch(url,{cache:'no-store'});
-      if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
       const text=await r.text();
-      if(!text||text.length<10)throw new Error('Respuesta vacía');
-      // Detectar si devolvió HTML de login (redirect de Google)
-      if(text.trim().startsWith('<!DOCTYPE')||text.trim().startsWith('<html'))
-        throw new Error('Respuesta HTML (posible redirect)');
-      return parseCSV(text);
-    }catch(e){lastErr=e.message;console.warn(`[${key}] falló ${url}: ${e.message}`);}
+      if(!text||text.length<5) throw new Error('Respuesta vacía');
+      if(text.trim().startsWith('<')) throw new Error('Google devolvió HTML (redirect de auth)');
+      const parsed=parseCSV(text);
+      if(parsed.rows.length===0) throw new Error('0 filas en el CSV');
+      console.log(`[${key}] ✓ intento ${i+1} OK → ${parsed.rows.length} filas, ${parsed.headers.length} columnas`);
+      return parsed;
+    }catch(e){
+      console.warn(`[${key}] intento ${i+1} falló (${url.slice(0,60)}…): ${e.message}`);
+    }
   }
-  console.error(`[${key}] todos los intentos fallaron: ${lastErr}`);
-  return{headers:[],rows:[],_err:lastErr};
+
+  console.error(`[${key}] ✗ todos los intentos fallaron`);
+  return{headers:[],rows:[],_err:'Sin datos'};
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1214,28 +1215,39 @@ async function loadData(manual=false){
   if(manual){document.getElementById('stateWrap').style.display='block';document.getElementById('mainWrap').style.display='none';}
   const setMsg=m=>document.getElementById('loadMsg').textContent=m;
 
+  // Log visible en pantalla
+  const logEl=document.createElement('div');
+  logEl.style.cssText='font-family:monospace;font-size:11px;color:#64748b;margin-top:16px;text-align:left;max-width:500px;line-height:1.8';
+  document.querySelector('#stateWrap .content').appendChild(logEl);
+  const log=(msg,ok)=>{const line=document.createElement('div');line.style.color=ok===true?'#10b981':ok===false?'#ef4444':'#64748b';line.textContent=(ok===true?'✓ ':ok===false?'✗ ':'⋯ ')+msg;logEl.appendChild(line);};
+
   try{
     setMsg('Cargando hoja de Competencia…');
+    log('Conectando a Competencia…');
     const shComp=await fetchSheet('competencia');
     RAW=shComp.rows.length?processCompetencia(shComp):[];
-    if(shComp._err)console.warn('Competencia:',shComp._err);
+    log(`Competencia: ${shComp.rows.length} filas | cols: [${shComp.headers.slice(0,6).join(', ')}] | procesados: ${RAW.length}`,shComp.rows.length>0);
 
     setMsg('Cargando Locales por Categoría…');
+    log('Conectando a Locales…');
     DS_LOCALES=await fetchSheet('locales');
     buildLocalesMap(DS_LOCALES);
-    if(DS_LOCALES._err)console.warn('Locales:',DS_LOCALES._err);
+    log(`Locales: ${DS_LOCALES.rows.length} filas | cols: [${DS_LOCALES.headers.slice(0,6).join(', ')}] | ${LOCALES_MASTER.length} locales`,DS_LOCALES.rows.length>0);
 
     setMsg('Cargando Pedidos…');
+    log('Conectando a Pedidos…');
     DS_PEDIDOS=await fetchSheet('pedidos');
     PEDIDOS_ROWS=DS_PEDIDOS.rows.length?processPedidos(DS_PEDIDOS):[];
-    if(DS_PEDIDOS._err)console.warn('Pedidos:',DS_PEDIDOS._err);
+    log(`Pedidos: ${DS_PEDIDOS.rows.length} filas | cols: [${DS_PEDIDOS.headers.slice(0,6).join(', ')}] | procesados: ${PEDIDOS_ROWS.length}`,DS_PEDIDOS.rows.length>0);
 
     setMsg('Cargando Base de Respuestas…');
+    log('Conectando a Respuestas…');
     DS_RESPUESTAS=await fetchSheet('respuestas');
     RESP_HEADERS=DS_RESPUESTAS.headers;
     RESP_ROWS=DS_RESPUESTAS.rows;
-    if(DS_RESPUESTAS._err)console.warn('Respuestas:',DS_RESPUESTAS._err);
+    log(`Respuestas: ${RESP_ROWS.length} filas | cols: [${RESP_HEADERS.slice(0,6).join(', ')}]`,RESP_ROWS.length>0);
 
+    log(`Listo — ${RAW.length} registros totales`,true);
     filtered=RAW;
     populateSelects();
     applyFilters();
