@@ -458,10 +458,10 @@ tbody tr:hover{background:var(--gray-50)}
    URLS CSV EXACTAS
 ═══════════════════════════════════════════════════════ */
 const SHEET_URLS={
+  respuestas: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSMgOxKbxLf61TNIiKKEegElOSvAz-dxHWgw591McciGAo1cZUpxw106K-1dM3eM_edxusFYal_AIuU/pub?output=csv',
   locales:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vSNckXvP0nhh8ZBmHOER3EfWO7y_PEaPfeLcEcWyKlNffuaW6tFDRpFkLWJnlsaMkY8FsbpScZsaIv6/pub?output=csv',
-  pedidos:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQjJfvWVC37EMGAlxG2qsxbiN2NcSs3pK_V5gPqLWdW1VIdaxPfrfh3tJPVXjrU5waeAOGSU-995d7u/pub?output=csv',
   competencia:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXRis6q-eyM8NhBokbtaXCJDu6tpU1U3MK51Q7aOtZWihsSejDLlb7wOoGKxQ1NDcYtjl1ISi0ti3x/pub?output=csv',
-  respuestas: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSNckXvP0nhh8ZBmHOER3EfWO7y_PEaPfeLcEcWyKlNffuaW6tFDRpFkLWJnlsaMkY8FsbpScZsaIv6/pub?output=csv',
+  pedidos:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQjJfvWVC37EMGAlxG2qsxbiN2NcSs3pK_V5gPqLWdW1VIdaxPfrfh3tJPVXjrU5waeAOGSU-995d7u/pub?output=csv',
 };
 
 /* ═══════════════════════════════════════════════════════
@@ -613,39 +613,134 @@ function canonical(s){
 }
 
 /* ═══════════════════════════════════════════════════════
-   PROCESS COMPETENCIA SHEET → RAW records
-   Columns auto-detected by name matching
+   MAPA DE EQUIVALENCIAS (sheet Competencia: ColA=comp, ColB=minerva)
+═══════════════════════════════════════════════════════ */
+let EQUIV_MAP = {}; // { "bife de chorizo - chorti" → "bife de chorizo" }
+let EQUIV_MINERVA_NAMES = new Set(); // nombres canónicos Minerva
+
+function buildEquivMap(sheet){
+  const {rows} = sheet;
+  EQUIV_MAP = {};
+  EQUIV_MINERVA_NAMES = new Set();
+  for(const r of rows){
+    const compCorte  = (r[0]||'').trim();
+    const minCorte   = (r[1]||'').trim();
+    if(!compCorte) continue;
+    // Clave: nombre competencia normalizado → nombre Minerva canónico
+    EQUIV_MAP[compCorte.toUpperCase()] = minCorte || compCorte;
+    if(minCorte) EQUIV_MINERVA_NAMES.add(minCorte.toUpperCase());
+  }
+  console.log(`[competencia] mapa de equivalencias: ${Object.keys(EQUIV_MAP).length} cortes`);
+}
+
+// Resuelve el grupo canónico de un corte usando el mapa de equivalencias
+function resolveCorte(corteRaw){
+  if(!corteRaw) return null;
+  const up = corteRaw.trim().toUpperCase();
+  // Buscar equivalencia exacta
+  if(EQUIV_MAP[up]) return EQUIV_MAP[up].toUpperCase();
+  // Buscar coincidencia parcial
+  for(const [k,v] of Object.entries(EQUIV_MAP)){
+    if(up.includes(k) || k.includes(up)) return v.toUpperCase();
+  }
+  // Fallback al canónico por nombre
+  return canonical(corteRaw.split(/\s*[-–]\s*/)[0]);
+}
+
+// Guarda los headers reales para mostrar al usuario
+let COMP_HEADERS_DEBUG = [];
+
+/* ═══════════════════════════════════════════════════════
+   PROCESS RESPUESTAS SHEET → RAW records
+   Columnas: FECHA RELEVADOR LOCAL CIUDAD CORTE PRECIO OFERTA
+             CORTENUEVO MARCACORTENUEVO PRECIOCORTENUEVO CATEGORIA PDV
+   Índices:    0      1        2      3      4      5      6
+               7           8              9          10       11
 ═══════════════════════════════════════════════════════ */
 function processCompetencia(sheet){
-  const{headers,rows}=sheet;
-  const hi=k=>headers.findIndex(h=>new RegExp(k,'i').test(h));
-  // Common column patterns
-  const CI=hi('corte|producto|carne|descripcion'); // corte
-  const LI=hi('local|sucursal|tienda|punto');       // local
-  const MI=hi('marca|brand');                        // marca
-  const PI=hi('precio|price|valor');                 // precio
-  const FI=hi('fecha|date');                         // fecha
-  const OI=hi('oferta|promo');                       // oferta
+  // Este sheet ES la BD principal (Respuestas = BD MasMarka Envasados)
+  const{headers, rows} = sheet;
+  COMP_HEADERS_DEBUG = headers;
+  console.log('[respuestas/main] headers:', headers);
 
-  const out=[];
+  // Mapeo por nombre de columna (exacto o regex)
+  const hi = (k, fb=-1) => {
+    const idx = headers.findIndex(h => new RegExp(k,'i').test(h.replace(/\s+/g,'')));
+    return idx >= 0 ? idx : fb;
+  };
+
+  // Columnas principales del relevamiento Minerva
+  const COL = {
+    fecha:    hi('fecha|timestamp|marca.temporal', 0),
+    relev:    hi('relevador', 1),
+    local:    hi('local|pdv|sucursal|punto', 2),
+    ciudad:   hi('ciudad', 3),
+    corte:    hi('^corte$|^corte[^n]', 4),          // "CORTE" pero no "CORTENUEVO"
+    precio:   hi('^precio$|^precio[^c]|^preciooferta$|precio.oferta', 5),
+    oferta:   hi('oferta', 6),
+    // Columnas de competencia relevada
+    cn:       hi('cortenuevo|corte.nuevo|cn$', 7),
+    mn:       hi('marcacortenuevo|marca.corte|marcanuevo|mn$', 8),
+    pcn:      hi('preciocortenuevo|precio.corte.nuevo|pcn$', 9),
+    cat:      hi('categoria|category', 10),
+    cadena:   hi('cadena|canal|pdv$|categoria.pdv', 11),
+  };
+
+  console.log('[respuestas/main] columnas detectadas:', COL);
+
+  const out = [];
+
   for(const r of rows){
-    const local=normLocal((r[LI>=0?LI:1]||'').trim());
-    const corteRaw=(r[CI>=0?CI:0]||'').trim();
-    const marcaRaw=(r[MI>=0?MI:'']||'').trim().toUpperCase()||'SIN MARCA';
-    const precio=parseP(r[PI>=0?PI:3]);
-    const fecha=FI>=0?(r[FI]||'').trim():'';
-    const oferta=OI>=0?parseP(r[OI]):null;
-    if(!corteRaw||precio===null)continue;
+    const fecha  = (r[COL.fecha]  ||'').trim();
+    const local  = normLocal((r[COL.local]  ||'').trim());
+    if(!local) continue;
 
-    const cadena=extractCadena(local);
-    const esFrigo=isFrigoMarca(marcaRaw)||isFrigoMarca(corteRaw.split(/\s*[-–]\s*/).pop());
-    const marca=esFrigo?'Minerva':marcaRaw;
-    const tipo=esFrigo?'FRIGO':'COMPETENCIA';
-    const cg=canonical(corteRaw.split(/\s*[-–]\s*/)[0]);
+    const ciudad   = (r[COL.ciudad] ||'').trim();
+    const catRaw   = (r[COL.cat]    ||'').trim();
+    const cadRaw   = (r[COL.cadena] ||'').trim();
+    const cadena   = cadRaw ? extractCadena(cadRaw) : extractCadena(local);
 
-    out.push({local,cadena,cg,marca,tipo,precio,oferta,fecha});
+    // ── Registro Minerva (corte propio) ──
+    const corteRaw = (r[COL.corte]  ||'').trim();
+    const precioM  = parseP(r[COL.precio]);
+    const oferta   = parseP(r[COL.oferta]);
+
+    if(corteRaw && precioM !== null){
+      const marca = getMarcaDeCorte(corteRaw);
+      const tipo  = isFrigoMarca(marca) ? 'FRIGO' : 'COMPETENCIA';
+      const cg    = resolveCorte(corteRaw);
+      out.push({fecha, local, ciudad, cadena, categoria:catRaw, cg, marca, tipo, precio:precioM, oferta});
+    }
+
+    // ── Registro Competencia relevada (cortenuevo/mn/pcn) ──
+    const cnRaw  = (r[COL.cn]  ||'').trim();
+    const mnRaw  = (r[COL.mn]  ||'').trim().toUpperCase() || 'SIN MARCA';
+    const pcn    = parseP(r[COL.pcn]);
+
+    if(cnRaw && pcn !== null){
+      const esFrigo = isFrigoMarca(mnRaw);
+      const marca2  = esFrigo ? 'Minerva' : mnRaw;
+      const tipo2   = esFrigo ? 'FRIGO'   : 'COMPETENCIA';
+      const cg2     = resolveCorte(cnRaw);
+      out.push({fecha, local, ciudad, cadena, categoria:catRaw, cg:cg2, marca:marca2, tipo:tipo2, precio:pcn, oferta:null});
+    }
   }
+
+  const nF = out.filter(r=>r.tipo==='FRIGO').length;
+  const nC = out.filter(r=>r.tipo==='COMPETENCIA').length;
+  console.log(`[respuestas/main] → ${out.length} registros: ${nF} Minerva + ${nC} Competencia`);
   return out;
+}
+
+// Extrae la marca del nombre del corte (ej: "Bife de Chorizo - Estancia 92" → "ESTANCIA 92")
+function getMarcaDeCorte(corte){
+  if(!corte) return 'SIN MARCA';
+  const partes = corte.split(/\s*[-–]\s*/);
+  if(partes.length >= 2){
+    const posibleMarca = partes[partes.length-1].trim().toUpperCase();
+    return posibleMarca;
+  }
+  return corte.trim().toUpperCase();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1222,57 +1317,68 @@ async function loadData(manual=false){
   const log=(msg,ok)=>{const line=document.createElement('div');line.style.color=ok===true?'#10b981':ok===false?'#ef4444':'#64748b';line.textContent=(ok===true?'✓ ':ok===false?'✗ ':'⋯ ')+msg;logEl.appendChild(line);};
 
   try{
-    setMsg('Cargando hoja de Competencia…');
-    log('Conectando a Competencia…');
-    const shComp=await fetchSheet('competencia');
-    RAW=shComp.rows.length?processCompetencia(shComp):[];
-    log(`Competencia: ${shComp.rows.length} filas | cols: [${shComp.headers.slice(0,6).join(', ')}] | procesados: ${RAW.length}`,shComp.rows.length>0);
+    // 1. Mapa de equivalencias de cortes (sheet Competencia: ColA=comp, ColB=minerva)
+    setMsg('Cargando equivalencias de cortes…');
+    log('Cargando mapa de cortes Competencia↔Minerva…');
+    const shEquiv = await fetchSheet('competencia');
+    buildEquivMap(shEquiv);
+    log(`Equivalencias: ${Object.keys(EQUIV_MAP).length} cortes mapeados`, Object.keys(EQUIV_MAP).length>0);
 
+    // 2. Locales
     setMsg('Cargando Locales por Categoría…');
     log('Conectando a Locales…');
-    DS_LOCALES=await fetchSheet('locales');
+    DS_LOCALES = await fetchSheet('locales');
     buildLocalesMap(DS_LOCALES);
-    log(`Locales: ${DS_LOCALES.rows.length} filas | cols: [${DS_LOCALES.headers.slice(0,6).join(', ')}] | ${LOCALES_MASTER.length} locales`,DS_LOCALES.rows.length>0);
+    log(`Locales: ${DS_LOCALES.rows.length} filas | [${DS_LOCALES.headers.join(' | ')}] | ${LOCALES_MASTER.length} locales`, DS_LOCALES.rows.length>0);
 
+    // 3. BD Principal = Respuestas (BD MasMarka Envasados)
+    setMsg('Cargando BD de Relevamiento (Respuestas)…');
+    log('Conectando a Respuestas (BD principal)…');
+    DS_RESPUESTAS = await fetchSheet('respuestas');
+    RESP_HEADERS  = DS_RESPUESTAS.headers;
+    RESP_ROWS     = DS_RESPUESTAS.rows;
+    RAW = DS_RESPUESTAS.rows.length ? processCompetencia(DS_RESPUESTAS) : [];
+    log(`Respuestas: ${DS_RESPUESTAS.rows.length} filas | [${DS_RESPUESTAS.headers.join(' | ')}] | procesados: ${RAW.length}`, DS_RESPUESTAS.rows.length>0);
+
+    // 4. Pedidos
     setMsg('Cargando Pedidos…');
     log('Conectando a Pedidos…');
-    DS_PEDIDOS=await fetchSheet('pedidos');
-    PEDIDOS_ROWS=DS_PEDIDOS.rows.length?processPedidos(DS_PEDIDOS):[];
-    log(`Pedidos: ${DS_PEDIDOS.rows.length} filas | cols: [${DS_PEDIDOS.headers.slice(0,6).join(', ')}] | procesados: ${PEDIDOS_ROWS.length}`,DS_PEDIDOS.rows.length>0);
+    DS_PEDIDOS   = await fetchSheet('pedidos');
+    PEDIDOS_ROWS = DS_PEDIDOS.rows.length ? processPedidos(DS_PEDIDOS) : [];
+    log(`Pedidos: ${DS_PEDIDOS.rows.length} filas | [${DS_PEDIDOS.headers.join(' | ')}] | procesados: ${PEDIDOS_ROWS.length}`, DS_PEDIDOS.rows.length>0);
 
-    setMsg('Cargando Base de Respuestas…');
-    log('Conectando a Respuestas…');
-    DS_RESPUESTAS=await fetchSheet('respuestas');
-    RESP_HEADERS=DS_RESPUESTAS.headers;
-    RESP_ROWS=DS_RESPUESTAS.rows;
-    log(`Respuestas: ${RESP_ROWS.length} filas | cols: [${RESP_HEADERS.slice(0,6).join(', ')}]`,RESP_ROWS.length>0);
+    log(`✓ Listo — ${RAW.length} registros (${RAW.filter(r=>r.tipo==='FRIGO').length} Minerva / ${RAW.filter(r=>r.tipo==='COMPETENCIA').length} Competencia)`, true);
 
-    log(`Listo — ${RAW.length} registros totales`,true);
-    filtered=RAW;
+    // Panel de diagnóstico
+    const diagBanner = document.createElement('div');
+    diagBanner.id = 'diag-banner';
+    const allOk = RAW.length > 0 && LOCALES_MASTER.length > 0;
+    diagBanner.style.cssText = `background:${allOk?'#f0fdf4':'#fffbeb'};border:1px solid ${allOk?'#86efac':'#fcd34d'};border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:11px;font-family:monospace;line-height:2`;
+    diagBanner.innerHTML = `
+      <div style="font-weight:700;font-size:12px;margin-bottom:6px;font-family:sans-serif;color:${allOk?'#166534':'#92400e'}">
+        ${allOk ? '✅ Datos cargados correctamente' : '⚠️ Revisar estructura'}
+      </div>
+      <div>📊 <b>Respuestas/BD</b>: ${DS_RESPUESTAS.rows.length} filas → ${RAW.length} registros (${RAW.filter(r=>r.tipo==='FRIGO').length} Minerva + ${RAW.filter(r=>r.tipo==='COMPETENCIA').length} Comp.) | <span style="color:#6366f1">[${DS_RESPUESTAS.headers.join(' | ')}]</span></div>
+      <div>🔀 <b>Equivalencias</b>: ${Object.keys(EQUIV_MAP).length} cortes mapeados | <span style="color:#6366f1">[${shEquiv.headers.join(' | ')}]</span></div>
+      <div>📍 <b>Locales</b>: ${LOCALES_MASTER.length} locales | <span style="color:#6366f1">[${DS_LOCALES.headers.join(' | ')}]</span></div>
+      <div>📦 <b>Pedidos</b>: ${PEDIDOS_ROWS.length} procesados | <span style="color:#6366f1">[${DS_PEDIDOS.headers.join(' | ')}]</span></div>
+      ${RAW.length===0?'<div style="color:#ef4444;font-weight:700;font-family:sans-serif">⚠ 0 registros procesados — los headers de Respuestas no coinciden con lo esperado. Copiá los headers de arriba y compartílos.</div>':''}
+      <div style="margin-top:6px;font-family:sans-serif;font-size:10px;color:#94a3b8"><a href="#" onclick="document.getElementById(\'diag-banner\').remove();return false">✕ Cerrar este panel</a></div>
+    `;
+    document.querySelector('.content').prepend(diagBanner);
+
+    filtered = RAW;
     populateSelects();
     applyFilters();
 
-    // Mostrar advertencias si alguna hoja no cargó
-    const warns=[];
-    if(!RAW.length)warns.push('⚠ Competencia: sin datos');
-    if(!LOCALES_MASTER.length)warns.push('⚠ Locales: sin datos');
-    if(!PEDIDOS_ROWS.length)warns.push('⚠ Pedidos: sin datos');
-    if(!RESP_ROWS.length)warns.push('⚠ Respuestas: sin datos');
-    if(warns.length){
-      const banner=document.createElement('div');
-      banner.style.cssText='background:#fffbeb;border:1px solid #f59e0b;border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:#92400e;';
-      banner.innerHTML='<strong>Algunas hojas no cargaron correctamente:</strong><br>'+warns.join(' · ')+'<br><small>Verificá que cada hoja esté publicada: Archivo → Compartir → Publicar en la web → CSV</small>';
-      document.querySelector('.content').prepend(banner);
-    }
-
-    document.getElementById('lupd').textContent=new Date().toLocaleTimeString('es-PY',{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('connDot').className='status-dot';
-    document.getElementById('stateWrap').style.display='none';
-    document.getElementById('mainWrap').style.display='block';
+    document.getElementById('lupd').textContent = new Date().toLocaleTimeString('es-PY',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('connDot').className = 'status-dot';
+    document.getElementById('stateWrap').style.display = 'none';
+    document.getElementById('mainWrap').style.display  = 'block';
 
   }catch(e){
-    document.getElementById('stateWrap').innerHTML=`<div class="content" style="display:flex;align-items:center;justify-content:center;min-height:80vh"><div class="err-box"><strong>Error al cargar datos</strong><br><br>${e.message}<br><br><small>Verificá que las URLs de Google Sheets estén publicadas como HTML público.</small><br><br><button class="btn btn-primary" onclick="loadData(true)" style="margin-top:8px">Reintentar</button></div></div>`;
-    document.getElementById('connDot').className='status-dot offline';
+    document.getElementById('stateWrap').innerHTML=`<div class="content" style="display:flex;align-items:center;justify-content:center;min-height:80vh"><div class="err-box"><strong>Error al cargar datos</strong><br><br>${e.message}<br><br><button class="btn btn-primary" onclick="loadData(true)" style="margin-top:8px">Reintentar</button></div></div>`;
+    document.getElementById('connDot').className = 'status-dot offline';
   }
   btn.classList.remove('spin');
 }
