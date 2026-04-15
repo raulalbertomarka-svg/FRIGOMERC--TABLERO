@@ -8,29 +8,67 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --mv-navy:#1a3a5c; --mv-steel:#2c5f8a; --mv-blue:#3a7ab5; --mv-sky:#5b9fd4; --mv-ice:#dceef9; --mv-white:#ffffff;
-  --white:#ffffff; --bg:#f0f4f8; --bg-card:#ffffff; --border:#ccdae6; --border-hi:#a0bdd0;
-  --text-hi:#0c1d2e; --text-mid:#2e4d66; --text-lo:#6a90a8;
-  --green:#0e7c5b; --green-light:#d0ede4; --green-dark:#065a41;
-  --red:#b91c1c; --red-light:#fde8e6;
-  --amber:#92400e; --amber-light:#fef3c7;
-  --purple:#6d3fb5; --purple-light:#ede9fb;
-  --gray-50:#f0f4f8; --gray-100:#e0ecf4; --gray-200:#ccdae6; --gray-300:#a0bdd0;
-  --gray-400:#6a90a8; --gray-500:#3a6080; --gray-600:#2e4d66; --gray-700:#1a3050;
-  --gray-800:#0c1d2e; --gray-900:#060f18;
+  /* Brand Minerva — derivado del logo azul acero */
+  --mv-navy:#152840;
+  --mv-steel:#1e4d7a;
+  --mv-blue:#2a6aaa;
+  --mv-sky:#4a8fc8;
+  --mv-ice:#e8f2fb;
+  --mv-white:#ffffff;
+
+  /* Superficie día — tono blanco hueso refinado */
+  --white:#ffffff;
+  --bg:#f5f7fa;
+  --bg-card:#ffffff;
+  --bg-card2:#f8fafc;
+  --border:#dde6ef;
+  --border-hi:#b0c8dc;
+
+  /* Texto día — alto contraste, sin azulado genérico */
+  --text-hi:#111827;
+  --text-mid:#374151;
+  --text-lo:#6b7280;
+
+  /* Semánticos */
+  --green:#047857; --green-light:#ecfdf5; --green-dark:#065f46;
+  --red:#b91c1c;   --red-light:#fef2f2;
+  --amber:#92400e; --amber-light:#fffbeb;
+  --purple:#6d28d9; --purple-light:#f5f3ff;
+
+  /* Compatibilidad */
+  --gray-50:#f5f7fa; --gray-100:#eaf0f6; --gray-200:#dde6ef; --gray-300:#b0c8dc;
+  --gray-400:#6b7280; --gray-500:#4b5563; --gray-600:#374151; --gray-700:#1f2937;
+  --gray-800:#111827; --gray-900:#060c15;
   --blue:var(--mv-blue); --blue-light:var(--mv-ice); --blue-dark:var(--mv-steel);
-  --shadow-sm:0 1px 4px rgba(26,58,92,.08); --shadow:0 4px 12px rgba(26,58,92,.10); --shadow-md:0 8px 24px rgba(26,58,92,.13);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow:0 4px 6px rgba(0,0,0,.06),0 2px 4px rgba(0,0,0,.04);
+  --shadow-md:0 10px 20px rgba(0,0,0,.07),0 4px 8px rgba(0,0,0,.04);
   --radius:10px; --radius-lg:14px;
 }
+
+/* ── MODO NOCHE ejecutivo — azul noche profundo, no negro puro ── */
 body.dark{
-  --white:#0a1828; --bg:#060f18; --bg-card:#0a1828; --border:#162d48; --border-hi:#1e3f5e;
-  --text-hi:#e0eff8; --text-mid:#7aabcc; --text-lo:#3a6080;
-  --green-light:#052e20; --green-dark:#3ecf8e;
-  --red-light:#2d0a0a; --amber-light:#1e1200; --purple-light:#140830;
-  --gray-50:#060f18; --gray-100:#0a1828; --gray-200:#162d48; --gray-300:#1e3f5e;
-  --gray-400:#3a6080; --gray-500:#5a90b0; --gray-600:#7aabcc; --gray-700:#a0c8e0;
-  --gray-800:#c8e0f0; --gray-900:#e0eff8;
-  --mv-ice:#162d48; --blue-light:#162d48;
+  --white:#111c2b;
+  --bg:#0b1522;
+  --bg-card:#111c2b;
+  --bg-card2:#162436;
+  --border:#1e3048;
+  --border-hi:#2a4a6e;
+
+  /* Textos noche: blancos cálidos, nunca azulados puros */
+  --text-hi:#f1f5f9;
+  --text-mid:#cbd5e1;
+  --text-lo:#64748b;
+
+  --green:#10b981;  --green-light:#052e20; --green-dark:#34d399;
+  --red:#ef4444;    --red-light:#1f0707;
+  --amber:#fbbf24;  --amber-light:#1c1100;
+  --purple:#a78bfa; --purple-light:#1e1040;
+
+  --gray-50:#0b1522; --gray-100:#111c2b; --gray-200:#1e3048; --gray-300:#2a4a6e;
+  --gray-400:#64748b; --gray-500:#94a3b8; --gray-600:#cbd5e1; --gray-700:#e2e8f0;
+  --gray-800:#f1f5f9; --gray-900:#f8fafc;
+  --mv-ice:#1e3048; --blue-light:#1e3048;
 }
 html{scroll-behavior:smooth}
 body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text-hi);font-size:14px;line-height:1.5;min-height:100vh;transition:background .2s,color .2s}
@@ -214,9 +252,82 @@ tbody tr:hover{background:var(--bg)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:3px}
 
-/* ── MARCA SELECT MULTIPLE ── */
-select[multiple] option:checked{background:var(--mv-steel);color:#fff}
-body.dark select[multiple] option:checked{background:var(--mv-blue)}
+/* ── CHIP MULTISELECT COMPONENT ── */
+.chip-select{position:relative;display:inline-block;min-width:220px;}
+.chip-trigger{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:7px 12px;border-radius:8px;
+  border:1px solid var(--border);background:var(--bg-card);
+  cursor:pointer;user-select:none;
+  font-size:12px;font-weight:500;color:var(--text-mid);
+  transition:border-color .15s,box-shadow .15s;
+  min-width:220px;
+}
+.chip-trigger:hover{border-color:var(--mv-sky);color:var(--text-hi);}
+.chip-trigger.open{border-color:var(--mv-blue);box-shadow:0 0 0 3px rgba(42,106,170,.12);}
+.chip-trigger-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chip-trigger-arrow{font-size:10px;color:var(--text-lo);transition:transform .2s;flex-shrink:0;}
+.chip-trigger.open .chip-trigger-arrow{transform:rotate(180deg);}
+
+.chip-dropdown{
+  display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:10px;box-shadow:var(--shadow-md);
+  z-index:500;overflow:hidden;min-width:260px;
+}
+.chip-dropdown.open{display:block;animation:chipFadeIn .15s ease;}
+@keyframes chipFadeIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+
+.chip-dd-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;border-bottom:1px solid var(--border);
+  font-size:11px;font-weight:700;color:var(--text-lo);
+  text-transform:uppercase;letter-spacing:.06em;
+  background:var(--bg);
+}
+.chip-dd-header span{cursor:pointer;color:var(--mv-blue);font-weight:600;text-transform:none;letter-spacing:0;}
+.chip-dd-header span:hover{text-decoration:underline;}
+
+.chip-list{max-height:220px;overflow-y:auto;padding:6px;}
+.chip-item{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 10px;border-radius:7px;cursor:pointer;
+  transition:background .12s;user-select:none;
+  font-size:13px;color:var(--text-hi);
+}
+.chip-item:hover{background:var(--bg);}
+.chip-item.selected{background:var(--mv-ice);}
+body.dark .chip-item.selected{background:var(--mv-navy);}
+
+.chip-checkbox{
+  width:16px;height:16px;border-radius:4px;flex-shrink:0;
+  border:2px solid var(--border-hi);background:var(--bg-card);
+  display:flex;align-items:center;justify-content:center;
+  transition:background .12s,border-color .12s;
+}
+.chip-item.selected .chip-checkbox{background:var(--mv-blue);border-color:var(--mv-blue);}
+.chip-checkbox::after{content:'✓';font-size:10px;color:#fff;display:none;font-weight:700;}
+.chip-item.selected .chip-checkbox::after{display:block;}
+
+.chip-color-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.chip-name{flex:1;font-weight:500;}
+.chip-count{font-size:10px;color:var(--text-lo);flex-shrink:0;}
+
+.chip-tags-wrap{
+  display:flex;flex-wrap:wrap;gap:5px;padding:8px 14px;
+  border-top:1px solid var(--border);min-height:36px;
+  background:var(--bg);
+}
+.chip-tag{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 8px;border-radius:20px;
+  font-size:11px;font-weight:600;
+  background:var(--mv-ice);color:var(--mv-steel);
+  border:1px solid rgba(42,106,170,.2);
+}
+body.dark .chip-tag{background:var(--mv-navy);color:var(--mv-sky);border-color:rgba(74,143,200,.3);}
+.chip-tag-x{cursor:pointer;opacity:.6;font-size:12px;line-height:1;}
+.chip-tag-x:hover{opacity:1;}
 
 @media(max-width:900px){
   .hamburger{display:block}
@@ -331,11 +442,16 @@ body.dark select[multiple] option:checked{background:var(--mv-blue)}
         <div class="card-header">
           <div><div class="card-title"><span>💰</span> Precio Promedio por Corte · Minerva vs Competencia</div><div class="card-sub">Seleccioná las marcas a comparar · Gs. promedio</div></div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <select id="fMarcaChart" multiple onchange="renderPreciosChart(filtered)"
-              style="font-size:11px;padding:4px 8px;border-radius:7px;border:1px solid var(--gray-200);background:var(--gray-50);min-width:180px;max-height:80px">
-            </select>
+            <!-- Custom chip multiselect Resumen -->
+            <div class="chip-select" id="chipWrapR">
+              <div class="chip-trigger" onclick="toggleChipDropdown('chipWrapR')">
+                <span class="chip-trigger-label" id="chipLabelR">Todas las marcas</span>
+                <span class="chip-trigger-arrow">▾</span>
+              </div>
+              <div class="chip-dropdown" id="chipDropR"></div>
+            </div>
             <div class="mini-tabs">
-              <button class="mini-tab active" onclick="setChartMode('bar')" id="tabBar">Todos</button>
+              <button class="mini-tab active" onclick="setChartMode('bar')" id="tabBar">Todos los cortes</button>
               <button class="mini-tab" onclick="setChartMode('top')" id="tabTop">Top 8</button>
             </div>
           </div>
@@ -385,11 +501,16 @@ body.dark select[multiple] option:checked{background:var(--mv-blue)}
         <div class="card-header">
           <div><div class="card-title"><span>📊</span> Precio Promedio por Corte · Minerva vs Competencia</div><div class="card-sub">Seleccioná las marcas a comparar · Gs. promedio</div></div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <select id="fMarcaChartP" multiple onchange="renderPrecios()"
-              style="font-size:11px;padding:4px 8px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--text-hi);min-width:180px;max-height:80px">
-            </select>
+            <!-- Custom chip multiselect Precios -->
+            <div class="chip-select" id="chipWrapP">
+              <div class="chip-trigger" onclick="toggleChipDropdown('chipWrapP')">
+                <span class="chip-trigger-label" id="chipLabelP">Todas las marcas</span>
+                <span class="chip-trigger-arrow">▾</span>
+              </div>
+              <div class="chip-dropdown" id="chipDropP"></div>
+            </div>
             <div class="mini-tabs">
-              <button class="mini-tab active" onclick="setPreciosMode('bar')" id="tabBarP">Todos</button>
+              <button class="mini-tab active" onclick="setPreciosMode('bar')" id="tabBarP">Todos los cortes</button>
               <button class="mini-tab" onclick="setPreciosMode('top')" id="tabTopP">Top 8</button>
             </div>
           </div>
@@ -1049,17 +1170,22 @@ function renderDifPanel(data){
 function renderPreciosChart(data){
   const cgMap={};
   data.forEach(r=>{if(!r.cg||!r.precio)return;if(!cgMap[r.cg])cgMap[r.cg]={};if(!cgMap[r.cg][r.marca])cgMap[r.cg][r.marca]=[];cgMap[r.cg][r.marca].push(r.precio);});
+
   const mLocs={};
   data.filter(r=>r.tipo==='COMPETENCIA').forEach(r=>{if(!mLocs[r.marca])mLocs[r.marca]=new Set();mLocs[r.marca].add(r.local);});
   const todasMarcas=Object.entries(mLocs).sort((a,b)=>b[1].size-a[1].size).map(([m])=>m);
 
-  // Poblar select de marcas si está vacío
-  const sel=document.getElementById('fMarcaChart');
-  if(sel&&sel.options.length===0){
-    todasMarcas.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;o.selected=true;sel.appendChild(o);});
+  // Iniciar chip si no existe aún
+  if(!chipState['chipWrapR']){
+    initChipSelect('chipWrapR', todasMarcas, ()=>renderPreciosChart(filtered));
+  } else if(chipState['chipWrapR'].todas.length!==todasMarcas.length){
+    // Actualizar si cambiaron los datos
+    chipState['chipWrapR'].todas=todasMarcas;
+    chipState['chipWrapR'].marcas=new Set(todasMarcas);
+    renderChipItems('chipWrapR');renderChipTags('chipWrapR');updateChipLabel('chipWrapR');
   }
-  const seleccionadas=sel?[...sel.selectedOptions].map(o=>o.value):todasMarcas;
-  const marcasFiltradas=seleccionadas.length?seleccionadas:todasMarcas;
+
+  const marcasFiltradas=getChipMarcas('chipWrapR');
 
   const allCg=Object.keys(cgMap);
   const topFirst=TOP_CORTES.filter(c=>allCg.includes(c));
@@ -1067,15 +1193,43 @@ function renderPreciosChart(data){
   let rows=[...topFirst,...others]
     .map(k=>({k,pF:avg(cgMap[k]['Minerva']||[]),byM:Object.fromEntries(marcasFiltradas.map(m=>[m,avg(cgMap[k][m]||[])]))}))
     .filter(r=>r.pF&&r.pF<400000&&marcasFiltradas.some(m=>r.byM[m]&&r.byM[m]<400000));
-  if(chartMode==='top')rows=rows.slice(0,8);
+  if(chartMode==='top') rows=rows.slice(0,8);
 
-  const BC=['#f43f5e','#f97316','#a855f7','#10b981','#eab308','#06b6d4','#ec4899','#84cc16','#6366f1','#14b8a6','#fb923c','#a3e635','#34d399','#38bdf8','#818cf8'];
-  const cfg={type:'bar',data:{labels:rows.map(r=>r.k.length>22?r.k.slice(0,21)+'…':r.k),datasets:[{label:'Minerva',data:rows.map(r=>r.pF?Math.round(r.pF):null),backgroundColor:'#0ea5e9',borderRadius:5,borderSkipped:false,borderWidth:0},...marcasFiltradas.map((m,i)=>({label:m,data:rows.map(r=>r.byM[m]?Math.round(r.byM[m]):null),backgroundColor:BC[i%BC.length],borderRadius:5,borderSkipped:false,borderWidth:0}))]},options:{...BASE(),indexAxis:'y',plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:10,color:'#334155',padding:10,usePointStyle:true,pointStyle:'circle'}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': Gs. '+gs(ctx.raw)}}},scales:{x:{ticks:{callback:v=>gs(v),font:{size:9},color:'#94a3b8'},grid:{color:'#f1f5f9'},border:{display:false}},y:{ticks:{font:{size:10,weight:'500'},color:'#1e293b',padding:4},grid:{display:false},border:{display:false}}}}};
+  const cfg={type:'bar',data:{
+    labels:rows.map(r=>r.k.length>24?r.k.slice(0,23)+'…':r.k),
+    datasets:[
+      {label:'Minerva',data:rows.map(r=>r.pF?Math.round(r.pF):null),
+       backgroundColor:'var(--mv-blue)',borderRadius:5,borderSkipped:false,borderWidth:0},
+      ...marcasFiltradas.map((m,i)=>({
+        label:m,
+        data:rows.map(r=>r.byM[m]?Math.round(r.byM[m]):null),
+        backgroundColor:BRAND_PALETTE[i%BRAND_PALETTE.length],
+        borderRadius:5,borderSkipped:false,borderWidth:0
+      }))
+    ]
+  },options:{...BASE(),indexAxis:'y',
+    plugins:{
+      legend:{position:'top',labels:{
+        font:{size:10,weight:'500'},boxWidth:10,padding:12,
+        usePointStyle:true,pointStyle:'circle',
+        color:getComputedStyle(document.body).getPropertyValue('--text-mid').trim()||'#374151'
+      }},
+      tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': Gs. '+gs(ctx.raw)}}
+    },
+    scales:{
+      x:{ticks:{callback:v=>gs(v),font:{size:9}},grid:{color:'rgba(0,0,0,.04)'},border:{display:false}},
+      y:{ticks:{font:{size:10,weight:'600'},padding:6},grid:{display:false},border:{display:false}}
+    }
+  }};
   mkChart('chPrecios',cfg);
-  mkChart('chPreciosMain',cfg);
 }
 
-function setChartMode(m){chartMode=m;document.getElementById('tabBar').classList.toggle('active',m==='bar');document.getElementById('tabTop').classList.toggle('active',m==='top');renderPreciosChart(filtered);}
+function setChartMode(m){
+  chartMode=m;
+  document.getElementById('tabBar').classList.toggle('active',m==='bar');
+  document.getElementById('tabTop').classList.toggle('active',m==='top');
+  renderPreciosChart(filtered);
+}
 
 function renderTopCortes(data){
   const cg={};
@@ -1180,13 +1334,15 @@ function renderPrecios(){
   comp.forEach(r=>{if(!mLocs2[r.marca])mLocs2[r.marca]=new Set();mLocs2[r.marca].add(r.local);});
   const todasMarcasP=Object.entries(mLocs2).sort((a,b)=>b[1].size-a[1].size).map(([m])=>m);
 
-  // Poblar select del pane Precios
-  const selP=document.getElementById('fMarcaChartP');
-  if(selP && selP.options.length===0){
-    todasMarcasP.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;o.selected=true;selP.appendChild(o);});
+  // Iniciar chip Precios si no existe
+  if(!chipState['chipWrapP']){
+    initChipSelect('chipWrapP', todasMarcasP, ()=>renderPrecios());
+  } else if(chipState['chipWrapP'].todas.length!==todasMarcasP.length){
+    chipState['chipWrapP'].todas=todasMarcasP;
+    chipState['chipWrapP'].marcas=new Set(todasMarcasP);
+    renderChipItems('chipWrapP');renderChipTags('chipWrapP');updateChipLabel('chipWrapP');
   }
-  const selecP=selP?[...selP.selectedOptions].map(o=>o.value):todasMarcasP;
-  const marcasFP=selecP.length?selecP:todasMarcasP;
+  const marcasFP=getChipMarcas('chipWrapP');
 
   // Gráfico independiente pane Precios
   const allCgP=Object.keys(cgMap2);
@@ -1197,27 +1353,34 @@ function renderPrecios(){
     .filter(r=>r.pF2&&r.pF2<400000&&marcasFP.some(m=>r.byM[m]&&r.byM[m]<400000));
   if(preciosModeP==='top') rowsP=rowsP.slice(0,8);
 
-  const BC=['#e05252','#e07c30','#9b59b6','#27ae60','#c0a020','#1a8caa','#c0406a','#5a9e30','#3a5faa','#1a8c7a'];
   mkChart('chPreciosMain',{
     type:'bar',
     data:{
-      labels:rowsP.map(r=>r.k.length>22?r.k.slice(0,21)+'…':r.k),
+      labels:rowsP.map(r=>r.k.length>24?r.k.slice(0,23)+'…':r.k),
       datasets:[
-        {label:'Minerva',data:rowsP.map(r=>r.pF2?Math.round(r.pF2):null),backgroundColor:'var(--mv-blue)',borderRadius:5,borderSkipped:false,borderWidth:0},
-        ...marcasFP.map((m,i)=>({label:m,data:rowsP.map(r=>r.byM[m]?Math.round(r.byM[m]):null),backgroundColor:BC[i%BC.length],borderRadius:5,borderSkipped:false,borderWidth:0}))
+        {label:'Minerva',data:rowsP.map(r=>r.pF2?Math.round(r.pF2):null),
+         backgroundColor:'var(--mv-blue)',borderRadius:5,borderSkipped:false,borderWidth:0},
+        ...marcasFP.map((m,i)=>({
+          label:m,
+          data:rowsP.map(r=>r.byM[m]?Math.round(r.byM[m]):null),
+          backgroundColor:BRAND_PALETTE[i%BRAND_PALETTE.length],
+          borderRadius:5,borderSkipped:false,borderWidth:0
+        }))
       ]
     },
     options:{...BASE(),indexAxis:'y',
-      plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:10,padding:10,usePointStyle:true,pointStyle:'circle'}},
-               tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': Gs. '+gs(ctx.raw)}}},
+      plugins:{
+        legend:{position:'top',labels:{font:{size:10,weight:'500'},boxWidth:10,padding:12,usePointStyle:true,pointStyle:'circle'}},
+        tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': Gs. '+gs(ctx.raw)}}
+      },
       scales:{
-        x:{ticks:{callback:v=>gs(v),font:{size:9}},grid:{color:'var(--border)'},border:{display:false}},
-        y:{ticks:{font:{size:10,weight:'500'},padding:4},grid:{display:false},border:{display:false}}
+        x:{ticks:{callback:v=>gs(v),font:{size:9}},grid:{color:'rgba(0,0,0,.04)'},border:{display:false}},
+        y:{ticks:{font:{size:10,weight:'600'},padding:6},grid:{display:false},border:{display:false}}
       }
     }
   });
 
-  // Tabla detallada
+  // Tabla detallada — todas las marcas
   const marcasPresentes=todasMarcasP;
   const sortedRows=Object.entries(cgMap2)
     .map(([k,v])=>({k,af:avg(v.f),ac:avg(Object.values(v.c).flat()),byMarca:v.c}))
@@ -1233,7 +1396,7 @@ function renderPrecios(){
   document.getElementById('tblPrecios').innerHTML=sortedRows.map((r,i)=>{
     const dif=r.af&&r.ac?(r.af-r.ac)/r.ac*100:null;
     const isTop=TOP_CORTES.includes(r.k);
-    return`<tr style="${isTop?'font-weight:600':''}">
+    return`<tr>
       <td>${r.k}${isTop?` <span class="tag tag-biggie" style="font-size:9px">TOP</span>`:''}</td>
       <td style="font-weight:700;color:var(--mv-steel);background:var(--mv-ice)">${r.af?'Gs. '+gs(r.af):'—'}</td>
       ${marcasPresentes.map(b=>`<td>${avg(r.byMarca[b]||[])?'Gs. '+gs(avg(r.byMarca[b])):'—'}</td>`).join('')}
@@ -1638,7 +1801,128 @@ function renderRespuestas(){
 /* ═══════════════════════════════════════════════════════
    DARK MODE
 ═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   CHIP MULTISELECT SYSTEM
+═══════════════════════════════════════════════════════ */
+const BRAND_PALETTE=['#2a6aaa','#c0392b','#e07c2a','#7d3fb5','#1a8a5a','#2980b9','#c0405a','#5a9a28','#8a6520','#1a7a8a','#c060a0','#3a8a70'];
+const chipState={}; // { wrapId: { marcas:Set, todas:[] } }
+
+function initChipSelect(wrapId, marcas, onChangeFn){
+  const state={marcas:new Set(marcas), todas:[...marcas], onChangeFn};
+  chipState[wrapId]=state;
+
+  const drop=document.getElementById(wrapId==='chipWrapR'?'chipDropR':'chipDropP');
+  if(!drop) return;
+
+  // Build dropdown HTML
+  drop.innerHTML=`
+    <div class="chip-dd-header">
+      <span>MARCAS</span>
+      <div style="display:flex;gap:10px">
+        <span onclick="chipSelectAll('${wrapId}')">Todas</span>
+        <span onclick="chipSelectNone('${wrapId}')">Ninguna</span>
+      </div>
+    </div>
+    <div class="chip-list" id="${wrapId}-list"></div>
+    <div class="chip-tags-wrap" id="${wrapId}-tags"></div>
+  `;
+  renderChipItems(wrapId);
+  renderChipTags(wrapId);
+  updateChipLabel(wrapId);
+}
+
+function renderChipItems(wrapId){
+  const state=chipState[wrapId];if(!state)return;
+  const listEl=document.getElementById(wrapId+'-list');if(!listEl)return;
+  listEl.innerHTML=state.todas.map((m,i)=>{
+    const selected=state.marcas.has(m);
+    const col=BRAND_PALETTE[i%BRAND_PALETTE.length];
+    return`<div class="chip-item${selected?' selected':''}" onclick="chipToggle('${wrapId}','${m.replace(/'/g,"\\'")}')">
+      <div class="chip-checkbox"></div>
+      <div class="chip-color-dot" style="background:${col}"></div>
+      <span class="chip-name">${m}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderChipTags(wrapId){
+  const state=chipState[wrapId];if(!state)return;
+  const tagsEl=document.getElementById(wrapId+'-tags');if(!tagsEl)return;
+  if(state.marcas.size===state.todas.length||state.marcas.size===0){
+    tagsEl.innerHTML='<span style="font-size:11px;color:var(--text-lo)">Todas las marcas seleccionadas</span>';
+  } else {
+    tagsEl.innerHTML=[...state.marcas].map(m=>
+      `<span class="chip-tag">${m}<span class="chip-tag-x" onclick="chipToggle('${wrapId}','${m.replace(/'/g,"\\'")}')">×</span></span>`
+    ).join('');
+  }
+}
+
+function updateChipLabel(wrapId){
+  const state=chipState[wrapId];if(!state)return;
+  const labelId=wrapId==='chipWrapR'?'chipLabelR':'chipLabelP';
+  const el=document.getElementById(labelId);if(!el)return;
+  if(state.marcas.size===0||state.marcas.size===state.todas.length){
+    el.textContent='Todas las marcas ('+state.todas.length+')';
+  } else if(state.marcas.size===1){
+    el.textContent=[...state.marcas][0];
+  } else {
+    el.textContent=state.marcas.size+' marcas seleccionadas';
+  }
+}
+
+function chipToggle(wrapId, marca){
+  const state=chipState[wrapId];if(!state)return;
+  if(state.marcas.has(marca)) state.marcas.delete(marca);
+  else state.marcas.add(marca);
+  renderChipItems(wrapId);
+  renderChipTags(wrapId);
+  updateChipLabel(wrapId);
+  state.onChangeFn();
+}
+
+function chipSelectAll(wrapId){
+  const state=chipState[wrapId];if(!state)return;
+  state.marcas=new Set(state.todas);
+  renderChipItems(wrapId);renderChipTags(wrapId);updateChipLabel(wrapId);
+  state.onChangeFn();
+}
+
+function chipSelectNone(wrapId){
+  const state=chipState[wrapId];if(!state)return;
+  state.marcas=new Set();
+  renderChipItems(wrapId);renderChipTags(wrapId);updateChipLabel(wrapId);
+  state.onChangeFn();
+}
+
+function toggleChipDropdown(wrapId){
+  const dropId=wrapId==='chipWrapR'?'chipDropR':'chipDropP';
+  const trigEl=document.querySelector(`#${wrapId} .chip-trigger`);
+  const dropEl=document.getElementById(dropId);
+  if(!dropEl)return;
+  const isOpen=dropEl.classList.contains('open');
+  // Close all first
+  document.querySelectorAll('.chip-dropdown').forEach(d=>d.classList.remove('open'));
+  document.querySelectorAll('.chip-trigger').forEach(t=>t.classList.remove('open'));
+  if(!isOpen){dropEl.classList.add('open');trigEl?.classList.add('open');}
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.chip-select')){
+    document.querySelectorAll('.chip-dropdown').forEach(d=>d.classList.remove('open'));
+    document.querySelectorAll('.chip-trigger').forEach(t=>t.classList.remove('open'));
+  }
+});
+
+// Helper: get selected marcas for a chip wrap (all if empty selection)
+function getChipMarcas(wrapId){
+  const state=chipState[wrapId];
+  if(!state||state.marcas.size===0) return state?.todas||[];
+  return [...state.marcas];
+}
+
 function toggleDark(){document.body.classList.toggle('dark');const btn=document.getElementById('darkBtn');btn.textContent=document.body.classList.contains('dark')?'☀️':'🌙';localStorage.setItem('dark',document.body.classList.contains('dark')?'1':'0');}
+
 if(localStorage.getItem('dark')==='1'){document.body.classList.add('dark');setTimeout(()=>{const b=document.getElementById('darkBtn');if(b)b.textContent='☀️';},100);}
 
 /* ═══════════════════════════════════════════════════════
