@@ -7,7 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 /* ═══════════════════════════════════════════════════════
-   ESTILOS ORIGINALES
+   ESTILOS ORIGINALES COMPLETOS
 ═══════════════════════════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -53,23 +53,24 @@ body.dark{--gray-50:#0f172a;--gray-100:#1e293b;--gray-200:#334155;--gray-300:#47
 .btn-primary{background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;border:none;box-shadow:0 4px 12px rgba(14,165,233,.35)}
 .status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block}
 .status-dot.offline{background:var(--red)}
+.lupd{font-size:11px;color:var(--gray-400)}
 
 .main{margin-left:220px;padding-top:56px;min-height:100vh}
 .content{padding:24px;max-width:1440px}
 
-.fbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:10px 14px;margin-bottom:20px}
-.fbar-label{font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase}
-.fbar select,.fbar input{font-size:12px;padding:5px 9px;border-radius:7px;border:1px solid var(--gray-200);background:var(--gray-50);outline:none}
+.fbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:10px 14px;margin-bottom:20px;box-shadow:var(--shadow-sm)}
+.fbar-label{font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.05em}
+.fbar select,.fbar input{font-size:12px;padding:5px 9px;border-radius:7px;border:1px solid var(--gray-200);background:var(--gray-50);color:var(--gray-700);outline:none}
 
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
 .kpi-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden}
-.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-color,var(--blue))}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-color,var(--blue));border-radius:14px 14px 0 0}
 .kpi-label{font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;margin-bottom:4px}
 .kpi-value{font-size:24px;font-weight:800;color:var(--gray-900);line-height:1}
 
 .card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:16px}
 .card-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--gray-100)}
-.card-title{font-size:13px;font-weight:700;color:var(--gray-800)}
+.card-title{font-size:13px;font-weight:700;color:var(--gray-800);display:flex;align-items:center;gap:8px}
 
 .tbl-wrap{overflow-x:auto;overflow-y:auto;max-height:450px}
 table{width:100%;border-collapse:collapse;font-size:12px}
@@ -79,11 +80,12 @@ tbody td{padding:9px 12px;border-bottom:1px solid var(--gray-100);color:var(--gr
 .pane{display:none}
 .pane.active{display:block}
 
-.loading{display:flex;align-items:center;gap:12px;color:var(--gray-500)}
+.loading{display:flex;align-items:center;gap:12px;color:var(--gray-500);font-size:13px}
 .spinner{width:24px;height:24px;border:2px solid var(--gray-200);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 @media(max-width:900px){
+  .hamburger{display:block}
   .sidebar{transform:translateX(-100%)}
   .sidebar.open{transform:translateX(0)}
   .topbar{left:0}.main{margin-left:0}
@@ -114,7 +116,7 @@ tbody td{padding:9px 12px;border-bottom:1px solid var(--gray-100);color:var(--gr
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
     <div>
       <div class="page-title" id="pageTitle">Resumen General</div>
-      <div class="page-subtitle" id="pageSubtitle">Estableciendo conexión...</div>
+      <div class="page-subtitle" id="pageSubtitle">Sincronizando datos...</div>
     </div>
   </div>
   <div class="topbar-right">
@@ -126,7 +128,7 @@ tbody td{padding:9px 12px;border-bottom:1px solid var(--gray-100);color:var(--gr
 
 <div class="main" id="stateWrap">
   <div class="content" style="display:flex;align-items:center;justify-content:center;min-height:80vh">
-    <div class="loading"><div class="spinner"></div><span id="loadMsg">Cargando datos desde la nube...</span></div>
+    <div class="loading"><div class="spinner"></div><span id="loadMsg">Estableciendo conexión segura con Google Sheets...</span></div>
   </div>
 </div>
 
@@ -143,7 +145,7 @@ tbody td{padding:9px 12px;border-bottom:1px solid var(--gray-100);color:var(--gr
     <div class="pane active" id="pane-resumen">
       <div class="kpi-grid" id="kpiGrid"></div>
       <div class="card">
-        <div class="card-header"><div class="card-title">Comparativa de Precios por Corte (Minerva vs Otros)</div></div>
+        <div class="card-header"><div class="card-title">Distribución de Precios (Minerva vs Otros)</div></div>
         <div class="card-body"><div style="height:350px"><canvas id="chPrecios"></canvas></div></div>
       </div>
     </div>
@@ -160,7 +162,7 @@ tbody td{padding:9px 12px;border-bottom:1px solid var(--gray-100);color:var(--gr
 
 <script>
 /* ═══════════════════════════════════════════════════════
-   SISTEMA ANTIFALLO DE CONEXIÓN
+   SISTEMA DE REDUNDANCIA DE CARGA (ANTIFALLO)
 ═══════════════════════════════════════════════════════ */
 const SHEET_URLS = {
   respuestas: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSMgOxKbxLf61TNIiKKEegElOSvAz-dxHWgw591McciGAo1cZUpxw106K-1dM3eM_edxusFYal_AIuU/pub?output=csv',
@@ -173,29 +175,38 @@ const FRIGO_BRANDS = new Set(['PUL', 'PUL SELECCION', 'PUL REGULAR', 'ESTANCIA 9
 let RAW=[], filtered=[], DS_RESPUESTAS={headers:[], rows:[]};
 let charts={};
 
-async function fetchWithRetry(url) {
-    // Intento 1: Directo (a veces funciona si el usuario tiene extensiones de CORS)
-    // Intento 2: CorsProxy.io (Más rápido que Allorigins)
-    // Intento 3: Allorigins.win (Como respaldo)
-    const attempts = [
-        url,
-        `https://corsproxy.io/?${encodeURIComponent(url)}`,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+/**
+ * Función que intenta cargar datos usando múltiples estrategias
+ * Resuelve errores de CORS y Timeouts 408
+ */
+async function fetchSheetSecure(url) {
+    const proxies = [
+        url, // Intento directo
+        `https://corsproxy.io/?${encodeURIComponent(url)}`, // Proxy 1
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, // Proxy 2
+        `https://thingproxy.freeboard.io/fetch/${url}` // Proxy 3
     ];
 
-    for (let proxyUrl of attempts) {
+    for (let proxyUrl of proxies) {
         try {
-            console.log("Intentando carga desde:", proxyUrl.slice(0, 50) + "...");
-            const response = await fetch(proxyUrl, { cache: 'no-store' });
+            console.log("Intentando descargar desde:", proxyUrl.slice(0, 50));
+            const response = await fetch(proxyUrl, { 
+                method: 'GET',
+                cache: 'no-store'
+            });
+            
             if (response.ok) {
                 const text = await response.text();
-                if (text.length > 100) return text; // Verificamos que trajo datos reales
+                // Verificamos que no sea una página de error o HTML
+                if (text.length > 500 && !text.trim().startsWith('<!DOCTYPE')) {
+                    return text;
+                }
             }
         } catch (e) {
-            console.warn("Fallo en intento con:", proxyUrl.slice(0, 30));
+            console.warn("Fallo en el intento con el servidor:", proxyUrl.split('/')[2]);
         }
     }
-    throw new Error("No se pudo conectar con los datos después de 3 intentos.");
+    throw new Error("Error: Los servidores están saturados. Por favor, refresca la página o intenta de nuevo en unos minutos.");
 }
 
 function parseCSV(text){
@@ -220,10 +231,10 @@ async function loadData(manual=false){
         document.getElementById('stateWrap').style.display='block';
         document.getElementById('mainWrap').style.display='none';
     }
-    document.getElementById('loadMsg').textContent = "Intentando descargar base de datos...";
+    document.getElementById('loadMsg').textContent = "Recuperando registros desde el servidor...";
 
     try {
-        const csvText = await fetchWithRetry(SHEET_URLS.respuestas);
+        const csvText = await fetchSheetSecure(SHEET_URLS.respuestas);
         DS_RESPUESTAS = parseCSV(csvText);
         
         RAW = processMainData(DS_RESPUESTAS);
@@ -238,7 +249,7 @@ async function loadData(manual=false){
         document.getElementById('lupd').textContent = new Date().toLocaleTimeString();
         document.getElementById('pageSubtitle').textContent = `${RAW.length.toLocaleString()} registros sincronizados`;
     } catch(e) {
-        document.getElementById('loadMsg').innerHTML = `<b style="color:red">Error crítico</b><br>${e.message}<br><button onclick="location.reload()" class="btn" style="margin-top:10px">Reintentar</button>`;
+        document.getElementById('loadMsg').innerHTML = `<b style="color:var(--red)">CONEXIÓN INTERRUMPIDA</b><br><small>${e.message}</small><br><button onclick="loadData(true)" class="btn btn-primary" style="margin-top:15px">REINTENTAR CARGA</button>`;
         document.getElementById('connDot').className = 'status-dot offline';
     }
 }
@@ -246,15 +257,26 @@ async function loadData(manual=false){
 function processMainData(sheet){
     const {headers, rows} = sheet;
     const hi = k => headers.findIndex(h => new RegExp(k,'i').test(h));
-    const LI=hi('local|sucursal'), CI=hi('corte|producto'), MI=hi('marca'), PI=hi('precio|valor');
+    
+    // Columnas automáticas
+    const LI=hi('local|sucursal|tienda'), CI=hi('corte|producto'), MI=hi('marca'), PI=hi('precio|valor|monto');
 
     return rows.map(r => {
         const local = r[LI] || 'PDV Desconocido', corte = r[CI] || 'Varios';
         const marca = (r[MI] || 'Competencia').toUpperCase();
         const precio = parseFloat(String(r[PI]||'0').replace(/[^\d.]/g,'')) || 0;
+        
+        // Lógica de marcas Minerva solicitada
         const esFrigo = Array.from(FRIGO_BRANDS).some(b => marca.includes(b) || corte.toUpperCase().includes(b));
         
-        return { local, corte, marca: esFrigo?'Minerva':marca, tipo: esFrigo?'FRIGO':'COMPETENCIA', precio, cadena: extractCadena(local) };
+        return { 
+            local, 
+            corte, 
+            marca: esFrigo ? 'Minerva' : marca, 
+            tipo: esFrigo ? 'FRIGO' : 'COMPETENCIA', 
+            precio, 
+            cadena: extractCadena(local) 
+        };
     }).filter(r => r.precio > 5000);
 }
 
@@ -272,10 +294,10 @@ function renderResumen(){
     const pF = avg(f), pC = avg(c);
 
     document.getElementById('kpiGrid').innerHTML = `
-        <div class="kpi-card" style="--kpi-color:#0ea5e9"><div class="kpi-label">RELEVAMIENTOS</div><div class="kpi-value">${filtered.length.toLocaleString()}</div></div>
-        <div class="kpi-card" style="--kpi-color:#10b981"><div class="kpi-label">AVG MINERVA</div><div class="kpi-value">${Math.round(pF).toLocaleString()} Gs.</div></div>
-        <div class="kpi-card" style="--kpi-color:#94a3b8"><div class="kpi-label">AVG COMPETENCIA</div><div class="kpi-value">${Math.round(pC).toLocaleString()} Gs.</div></div>
-        <div class="kpi-card" style="--kpi-color:#f59e0b"><div class="kpi-label">PDV ACTIVOS</div><div class="kpi-value">${new Set(filtered.map(r=>r.local)).size}</div></div>
+        <div class="kpi-card" style="--kpi-color:#0ea5e9"><div class="kpi-label">TOTAL REGISTROS</div><div class="kpi-value">${filtered.length.toLocaleString()}</div></div>
+        <div class="kpi-card" style="--kpi-color:#10b981"><div class="kpi-label">PRECIO MINERVA</div><div class="kpi-value">${Math.round(pF).toLocaleString()} Gs.</div></div>
+        <div class="kpi-card" style="--kpi-color:#94a3b8"><div class="kpi-label">PRECIO COMPETENCIA</div><div class="kpi-value">${Math.round(pC).toLocaleString()} Gs.</div></div>
+        <div class="kpi-card" style="--kpi-color:#f59e0b"><div class="kpi-label">PUNTOS RELEVADOS</div><div class="kpi-value">${new Set(filtered.map(r=>r.local)).size}</div></div>
     `;
 
     renderChart(f, c);
@@ -299,7 +321,11 @@ function renderChart(f, c){
                 { label: 'Competencia', data: cuts.map(k=>getAvg(c,k)), backgroundColor: '#cbd5e1', borderRadius: 5 }
             ]
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: { y: { ticks: { callback: v => v.toLocaleString() + ' Gs.' } } }
+        }
     });
 }
 
@@ -321,24 +347,20 @@ function applyFilters(){
     const corte = document.getElementById('fCorte').value;
     const cadena = document.getElementById('fCadena').value;
     const busca = document.getElementById('fLocal').value.toLowerCase();
-    filtered = RAW.filter(r => (!corte || r.corte===corte) && (!cadena || r.cadena===cadena) && (!busca || r.local.toLowerCase().includes(busca)));
-    renderCurrent();
-}
-
-function resetFilters(){
-    document.getElementById('fCorte').value='';
-    document.getElementById('fCadena').value='';
-    document.getElementById('fLocal').value='';
-    filtered = RAW;
+    filtered = RAW.filter(r => 
+        (!corte || r.corte===corte) && 
+        (!cadena || r.cadena===cadena) && 
+        (!busca || r.local.toLowerCase().includes(busca))
+    );
     renderCurrent();
 }
 
 function sw(t){
-    activeTab = t;
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById('nav-'+t).classList.add('active');
     document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
     document.getElementById('pane-'+t).classList.add('active');
+    activeTab = t;
     renderCurrent();
 }
 
@@ -352,6 +374,7 @@ function renderCurrent(){
 
 function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); }
 
+let activeTab = 'resumen';
 loadData();
 </script>
 </body>
