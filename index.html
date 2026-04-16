@@ -418,19 +418,34 @@ body.dark .chip-tag{background:var(--mv-navy);color:var(--mv-sky);border-color:r
 
     <!-- FILTER BAR -->
     <div class="fbar">
-      <span class="fbar-label">Corte</span>
-      <select id="fCorte" onchange="applyFilters()"><option value="">Todos</option></select>
+      <span class="fbar-label">Semana</span>
+      <select id="fSemana" onchange="applyFilters()" style="min-width:160px"><option value="">Todas</option></select>
+      <div class="fsep"></div>
+      <span class="fbar-label">Desde</span>
+      <input type="date" id="fDesde" onchange="applyFilters()">
+      <span class="fbar-label">Hasta</span>
+      <input type="date" id="fHasta" onchange="applyFilters()">
       <div class="fsep"></div>
       <span class="fbar-label">Cadena</span>
       <select id="fCadena" onchange="applyFilters()"><option value="">Todas</option></select>
       <div class="fsep"></div>
       <span class="fbar-label">Categoría</span>
       <select id="fCat" onchange="applyFilters()"><option value="">Todas</option></select>
-      <div class="fsep"></div>
-      <span class="fbar-label">Buscar local</span>
-      <input type="text" id="fLocal" placeholder="nombre local…" oninput="applyFilters()" style="min-width:140px">
+      <!-- hidden fields kept for JS compat -->
+      <select id="fCorte" style="display:none"><option value="">Todos</option></select>
+      <input type="text" id="fLocal" style="display:none">
       <button class="btn" onclick="resetFilters()" style="padding:5px 10px;font-size:11px">✕ Limpiar</button>
       <span class="factive" id="fpill" style="display:none"></span>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="exportPDF()" id="btnPDF" style="gap:5px">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><path d="M16 13H8M16 17H8M10 9H8"/></svg>
+          Informe PDF
+        </button>
+        <button class="btn" onclick="exportExcelFull()" style="gap:5px">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+          Excel Completo
+        </button>
+      </div>
     </div>
 
     <!-- ══ RESUMEN ══ -->
@@ -442,14 +457,7 @@ body.dark .chip-tag{background:var(--mv-navy);color:var(--mv-sky);border-color:r
         <div class="card-header">
           <div><div class="card-title"><span>💰</span> Precio Promedio por Corte · Minerva vs Competencia</div><div class="card-sub">Seleccioná las marcas a comparar · Gs. promedio</div></div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <!-- Custom chip multiselect Resumen -->
-            <div class="chip-select" id="chipWrapR">
-              <div class="chip-trigger" onclick="toggleChipDropdown('chipWrapR')">
-                <span class="chip-trigger-label" id="chipLabelR">Todas las marcas</span>
-                <span class="chip-trigger-arrow">▾</span>
-              </div>
-              <div class="chip-dropdown" id="chipDropR"></div>
-            </div>
+            <!-- Resumen chart: solo toggle todos/top8 -->
             <div class="mini-tabs">
               <button class="mini-tab active" onclick="setChartMode('bar')" id="tabBar">Todos los cortes</button>
               <button class="mini-tab" onclick="setChartMode('top')" id="tabTop">Top 8</button>
@@ -1008,17 +1016,55 @@ function processPedidos(sheet){
 /* ═══════════════════════════════════════════════════════
    POPULATE SELECTS
 ═══════════════════════════════════════════════════════ */
+/* ── Semana ISO helper ── */
+function getISOWeek(dateStr){
+  if(!dateStr)return null;
+  const d=new Date(dateStr+'T12:00:00');
+  if(isNaN(d))return null;
+  const day=d.getDay()||7;d.setDate(d.getDate()+4-day);
+  const y=d.getFullYear();const jan1=new Date(y,0,1);
+  const wk=Math.ceil((((d-jan1)/86400000)+1)/7);
+  return`${y}-S${String(wk).padStart(2,'0')}`;
+}
+function weekLabel(wk){
+  // "2026-S16" → "S16 · 2026"
+  if(!wk)return wk;
+  return wk.replace(/(\d{4})-S(\d+)/,'S$2 · $1');
+}
+
 function populateSelects(){
-  const sel=(id,opts)=>{const s=document.getElementById(id);const cur=s.value;const first=s.options[0];s.innerHTML='';s.appendChild(first);opts.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);});if(opts.includes(cur))s.value=cur;};
+  const sel=(id,opts)=>{
+    const s=document.getElementById(id);if(!s)return;
+    const cur=s.value;const first=s.options[0];
+    s.innerHTML='';s.appendChild(first);
+    opts.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);});
+    if(opts.includes(cur))s.value=cur;
+  };
   sel('fCorte',[...new Set(RAW.map(r=>r.cg).filter(Boolean))].sort());
   sel('fCadena',[...new Set(RAW.map(r=>r.cadena).filter(Boolean))].sort());
   sel('fCat',[...new Set(LOCALES_MASTER.map(l=>l.CATEGORIA).filter(Boolean))].sort());
-  // Cobertura cat filter
   sel('cobCatFilter',[...new Set(LOCALES_MASTER.map(l=>l.CATEGORIA).filter(Boolean))].sort());
+
+  // Semanas disponibles
+  const semanas=[...new Set(RAW.map(r=>getISOWeek(r.fecha)).filter(Boolean))].sort();
+  sel('fSemana', semanas.map(w=>w)); // value=ISO, text=label
+  // Override text of options with friendly label
+  const sSem=document.getElementById('fSemana');
+  if(sSem)Array.from(sSem.options).forEach(o=>{if(o.value)o.textContent=weekLabel(o.value);});
+
+  // Auto-set date range
+  const fechas=RAW.map(r=>r.fecha).filter(Boolean).sort();
+  if(fechas.length){
+    const desde=document.getElementById('fDesde');
+    const hasta=document.getElementById('fHasta');
+    if(desde&&!desde.value)desde.value=fechas[0];
+    if(hasta&&!hasta.value)hasta.value=fechas[fechas.length-1];
+  }
 
   const nLocs=new Set(RAW.map(r=>r.local)).size;
   const nRecs=RAW.length;
-  document.getElementById('pageSubtitle').textContent=`${nLocs} locales relevados · ${nRecs.toLocaleString()} registros`;
+  const sem=semanas.length;
+  document.getElementById('pageSubtitle').textContent=`${nLocs} locales · ${nRecs.toLocaleString()} registros · ${sem} semana${sem!==1?'s':''}`;
   document.getElementById('sf-status').textContent=`${nRecs.toLocaleString()} registros`;
   document.getElementById('sf-time').textContent=new Date().toLocaleDateString('es-PY');
 }
@@ -1027,30 +1073,37 @@ function populateSelects(){
    FILTERS
 ═══════════════════════════════════════════════════════ */
 function applyFilters(){
-  F.corte=document.getElementById('fCorte').value;
+  F.corte=''; // removido del fbar
   F.cadena=document.getElementById('fCadena').value;
   F.cat=document.getElementById('fCat').value;
-  F.local=(document.getElementById('fLocal').value||'').toLowerCase();
+  F.local=''; // removido del fbar
+  F.semana=document.getElementById('fSemana').value;
+  F.desde=document.getElementById('fDesde').value;
+  F.hasta=document.getElementById('fHasta').value;
 
   filtered=RAW.filter(r=>{
-    if(F.corte&&r.cg!==F.corte)return false;
+    if(F.semana&&getISOWeek(r.fecha)!==F.semana)return false;
+    if(F.desde&&r.fecha&&r.fecha<F.desde)return false;
+    if(F.hasta&&r.fecha&&r.fecha>F.hasta)return false;
     if(F.cadena&&r.cadena!==F.cadena)return false;
     if(F.cat){const info=getLocalInfo(r.local);if(info&&info.CATEGORIA!==F.cat)return false;}
-    if(F.local&&!r.local.toLowerCase().includes(F.local))return false;
     return true;
   });
 
-  const active=[F.corte,F.cadena,F.cat,F.local].filter(Boolean).length;
+  const active=[F.semana,F.cadena,F.cat].filter(Boolean).length;
+  const hasDate=(F.desde||F.hasta)?1:0;
+  const total=active+hasDate;
   const pill=document.getElementById('fpill');
-  if(active){pill.style.display='inline';pill.textContent=active+' filtro'+(active>1?'s':'')+' · '+filtered.length.toLocaleString()+' reg.';}
+  if(total){pill.style.display='inline';pill.textContent=total+' filtro'+(total>1?'s':'')+' · '+filtered.length.toLocaleString()+' reg.';}
   else pill.style.display='none';
   renderCurrent();
 }
 
 function resetFilters(){
-  ['fCorte','fCadena','fCat'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('fLocal').value='';
-  F={corte:'',cadena:'',cat:'',local:''};
+  ['fCadena','fCat','fSemana'].forEach(id=>{const s=document.getElementById(id);if(s)s.value='';});
+  document.getElementById('fDesde').value='';
+  document.getElementById('fHasta').value='';
+  F={corte:'',cadena:'',cat:'',local:'',semana:'',desde:'',hasta:''};
   filtered=RAW;
   document.getElementById('fpill').style.display='none';
   renderCurrent();
@@ -1171,57 +1224,45 @@ function renderPreciosChart(data){
   const cgMap={};
   data.forEach(r=>{if(!r.cg||!r.precio)return;if(!cgMap[r.cg])cgMap[r.cg]={};if(!cgMap[r.cg][r.marca])cgMap[r.cg][r.marca]=[];cgMap[r.cg][r.marca].push(r.precio);});
 
-  const mLocs={};
-  data.filter(r=>r.tipo==='COMPETENCIA').forEach(r=>{if(!mLocs[r.marca])mLocs[r.marca]=new Set();mLocs[r.marca].add(r.local);});
-  const todasMarcas=Object.entries(mLocs).sort((a,b)=>b[1].size-a[1].size).map(([m])=>m);
-
-  // Iniciar chip si no existe aún
-  if(!chipState['chipWrapR']){
-    initChipSelect('chipWrapR', todasMarcas, ()=>renderPreciosChart(filtered));
-  } else if(chipState['chipWrapR'].todas.length!==todasMarcas.length){
-    // Actualizar si cambiaron los datos
-    chipState['chipWrapR'].todas=todasMarcas;
-    chipState['chipWrapR'].marcas=new Set(todasMarcas);
-    renderChipItems('chipWrapR');renderChipTags('chipWrapR');updateChipLabel('chipWrapR');
-  }
-
-  const marcasFiltradas=getChipMarcas('chipWrapR');
-
   const allCg=Object.keys(cgMap);
   const topFirst=TOP_CORTES.filter(c=>allCg.includes(c));
   const others=allCg.filter(c=>!TOP_CORTES.includes(c));
   let rows=[...topFirst,...others]
-    .map(k=>({k,pF:avg(cgMap[k]['Minerva']||[]),byM:Object.fromEntries(marcasFiltradas.map(m=>[m,avg(cgMap[k][m]||[])]))}))
-    .filter(r=>r.pF&&r.pF<400000&&marcasFiltradas.some(m=>r.byM[m]&&r.byM[m]<400000));
+    .map(k=>{
+      const pF=avg(cgMap[k]['Minerva']||[]);
+      const compPrecios=Object.entries(cgMap[k])
+        .filter(([m])=>m!=='Minerva').flatMap(([,v])=>v);
+      const pC=avg(compPrecios);
+      return{k,pF,pC};
+    })
+    .filter(r=>r.pF&&r.pF<400000);
   if(chartMode==='top') rows=rows.slice(0,8);
 
-  const cfg={type:'bar',data:{
-    labels:rows.map(r=>r.k.length>24?r.k.slice(0,23)+'…':r.k),
-    datasets:[
-      {label:'Minerva',data:rows.map(r=>r.pF?Math.round(r.pF):null),
-       backgroundColor:'var(--mv-blue)',borderRadius:5,borderSkipped:false,borderWidth:0},
-      ...marcasFiltradas.map((m,i)=>({
-        label:m,
-        data:rows.map(r=>r.byM[m]?Math.round(r.byM[m]):null),
-        backgroundColor:BRAND_PALETTE[i%BRAND_PALETTE.length],
-        borderRadius:5,borderSkipped:false,borderWidth:0
-      }))
-    ]
-  },options:{...BASE(),indexAxis:'y',
-    plugins:{
-      legend:{position:'top',labels:{
-        font:{size:10,weight:'500'},boxWidth:10,padding:12,
-        usePointStyle:true,pointStyle:'circle',
-        color:getComputedStyle(document.body).getPropertyValue('--text-mid').trim()||'#374151'
-      }},
-      tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': Gs. '+gs(ctx.raw)}}
+  // Paleta ejecutiva: Minerva = azul acero, Comp = gris medio
+  mkChart('chPrecios',{
+    type:'bar',
+    data:{
+      labels:rows.map(r=>r.k.length>26?r.k.slice(0,25)+'…':r.k),
+      datasets:[
+        {label:'Minerva',
+         data:rows.map(r=>r.pF?Math.round(r.pF):null),
+         backgroundColor:'2a6aaa',borderRadius:4,borderSkipped:false,borderWidth:0},
+        {label:'Competencia (prom.)',
+         data:rows.map(r=>r.pC?Math.round(r.pC):null),
+         backgroundColor:'94a3b8',borderRadius:4,borderSkipped:false,borderWidth:0},
+      ]
     },
-    scales:{
-      x:{ticks:{callback:v=>gs(v),font:{size:9}},grid:{color:'rgba(0,0,0,.04)'},border:{display:false}},
-      y:{ticks:{font:{size:10,weight:'600'},padding:6},grid:{display:false},border:{display:false}}
+    options:{...BASE(),indexAxis:'y',
+      plugins:{
+        legend:{position:'top',labels:{font:{size:10,weight:'600'},boxWidth:12,padding:16,usePointStyle:true,pointStyle:'circle'}},
+        tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': Gs. '+gs(ctx.raw)}}
+      },
+      scales:{
+        x:{ticks:{callback:v=>gs(v),font:{size:9}},grid:{color:'rgba(0,0,0,.04)'},border:{display:false}},
+        y:{ticks:{font:{size:10,weight:'600'},padding:6},grid:{display:false},border:{display:false}}
+      }
     }
-  }};
-  mkChart('chPrecios',cfg);
+  });
 }
 
 function setChartMode(m){
@@ -1928,12 +1969,345 @@ if(localStorage.getItem('dark')==='1'){document.body.classList.add('dark');setTi
 /* ═══════════════════════════════════════════════════════
    CSV DOWNLOAD
 ═══════════════════════════════════════════════════════ */
-function downloadCSV(){
-  const cols=['local','cadena','cg','marca','tipo','precio','fecha'];
-  const header=cols.join(',');
-  const rows=(filtered.length?filtered:RAW).map(r=>cols.map(k=>{const v=r[k]===null||r[k]===undefined?'':r[k];return typeof v==='string'&&v.includes(',')? '"'+v+'"' : v;}).join(','));
-  const csv='\uFEFF'+header+'\n'+rows.join('\n');
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=`Minerva_Datos_${new Date().toISOString().slice(0,10)}.csv`;document.body.appendChild(a);a.click();document.body.removeChild(a);
+/* ═══════════════════════════════════════════════════════
+   EXCEL EXPORT — 3 hojas: Datos completos + Precios Max/Min + Ofertas
+═══════════════════════════════════════════════════════ */
+function downloadCSV(){ exportExcelFull(); } // alias
+
+function toCSV(rows2d){
+  return rows2d.map(r=>r.map(c=>{
+    const v=c===null||c===undefined?'':String(c);
+    return v.includes(',')? '"'+v.replace(/"/g,'""')+'"' : v;
+  }).join(',')).join('\n');
+}
+
+function exportExcelFull(){
+  const data=filtered.length?filtered:RAW;
+  const fecha=new Date().toISOString().slice(0,10);
+
+  // ── Hoja 1: Datos Completos ──
+  const h1=[['Fecha','Local','Cadena','Categoría','Corte','Marca','Tipo','Precio','Oferta']];
+  data.forEach(r=>h1.push([r.fecha||'',r.local||'',r.cadena||'',
+    (getLocalInfo(r.local)||{}).CATEGORIA||'',r.cg||'',r.marca||'',r.tipo||'',r.precio||'',r.oferta||'']));
+
+  // ── Hoja 2: Precios Máximos y Mínimos por Corte ──
+  const cgMap={};
+  data.forEach(r=>{
+    if(!r.cg||!r.precio)return;
+    if(!cgMap[r.cg])cgMap[r.cg]={f:[],c:{}};
+    if(r.tipo==='FRIGO') cgMap[r.cg].f.push(r.precio);
+    else{if(!cgMap[r.cg].c[r.marca])cgMap[r.cg].c[r.marca]=[];cgMap[r.cg].c[r.marca].push(r.precio);}
+  });
+  const h2=[['Corte','MINERVA Promedio','MINERVA Mínimo','MINERVA Máximo','COMPETENCIA Promedio','COMPETENCIA Mínimo','COMPETENCIA Máximo','DIF % Promedio']];
+  const topFirst=TOP_CORTES.filter(c=>cgMap[c]);
+  const others=Object.keys(cgMap).filter(c=>!TOP_CORTES.includes(c)).sort();
+  [...topFirst,...others].forEach(k=>{
+    const v=cgMap[k];
+    const pf=avg(v.f),pfMin=v.f.length?Math.min(...v.f):null,pfMax=v.f.length?Math.max(...v.f):null;
+    const compAll=Object.values(v.c).flat();
+    const pc=avg(compAll),pcMin=compAll.length?Math.min(...compAll):null,pcMax=compAll.length?Math.max(...compAll):null;
+    const dif=pf&&pc?((pf-pc)/pc*100).toFixed(1):'';
+    h2.push([k,pf?Math.round(pf):'',pfMin||'',pfMax||'',pc?Math.round(pc):'',pcMin||'',pcMax||'',dif]);
+  });
+
+  // ── Hoja 3: Precios de Oferta por Corte (reporte lunes) ──
+  const ofMap={};
+  data.filter(r=>r.oferta&&r.tipo==='FRIGO').forEach(r=>{
+    if(!ofMap[r.cg])ofMap[r.cg]={precios:[],ofertas:[],locales:new Set(),fechas:new Set()};
+    ofMap[r.cg].precios.push(r.precio);
+    ofMap[r.cg].ofertas.push(r.oferta);
+    ofMap[r.cg].locales.add(r.local);
+    if(r.fecha)ofMap[r.cg].fechas.add(r.fecha);
+  });
+  const h3=[['Corte','Precio Regular Promedio','Precio Oferta Promedio','Precio Oferta Mínimo','Precio Oferta Máximo','Descuento %','Locales en Oferta','Fechas']];
+  Object.entries(ofMap).sort((a,b)=>b[1].ofertas.length-a[1].ofertas.length).forEach(([k,v])=>{
+    const pr=avg(v.precios),po=avg(v.ofertas);
+    const poMin=Math.min(...v.ofertas),poMax=Math.max(...v.ofertas);
+    const desc=pr&&po?((po-pr)/pr*100).toFixed(1):'';
+    h3.push([k,pr?Math.round(pr):'',po?Math.round(po):'',poMin,poMax,desc,v.locales.size,[...v.fechas].sort().join(' / ')]);
+  });
+
+  // Generar como archivo ZIP CSV (multi-sheet via 3 CSVs descargados)
+  // Sheet 1
+  const dl=(csv,name)=>{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+    a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  };
+  dl(toCSV(h1),`Minerva_Datos_${fecha}.csv`);
+  setTimeout(()=>dl(toCSV(h2),`Minerva_Precios_MaxMin_${fecha}.csv`),300);
+  setTimeout(()=>dl(toCSV(h3),`Minerva_Ofertas_${fecha}.csv`),600);
+}
+
+/* ═══════════════════════════════════════════════════════
+   PDF EJECUTIVO — estilo Frutika (dark navy, KPI cards, tablas)
+═══════════════════════════════════════════════════════ */
+function exportPDF(){
+  const btn=document.getElementById('btnPDF');
+  if(btn){btn.textContent='⏳ Generando…';btn.disabled=true;}
+
+  const data=filtered.length?filtered:RAW;
+  const frigo=data.filter(r=>r.tipo==='FRIGO');
+  const comp=data.filter(r=>r.tipo==='COMPETENCIA');
+  const pF=avg(frigo.map(r=>r.precio).filter(Boolean));
+  const pC=avg(comp.map(r=>r.precio).filter(Boolean));
+  const diff=pF&&pC?(pF-pC)/pC*100:null;
+  const conF=new Set(frigo.map(r=>r.local));
+  const TOTAL=LOCALES_MASTER.length||401;
+  const cobPct=TOTAL?conF.size/TOTAL*100:0;
+
+  // Precios por corte
+  const cgMap={};
+  data.forEach(r=>{if(!r.cg||!r.precio)return;if(!cgMap[r.cg])cgMap[r.cg]={f:[],c:[]};if(r.tipo==='FRIGO')cgMap[r.cg].f.push(r.precio);else cgMap[r.cg].c.push(r.precio);});
+  const topCortes=Object.entries(cgMap).filter(([,v])=>v.f.length&&v.c.length)
+    .map(([k,v])=>({k,pF:avg(v.f),pC:avg(v.c),dif:(avg(v.f)-avg(v.c))/avg(v.c)*100}))
+    .sort((a,b)=>a.dif-b.dif).slice(0,8);
+
+  // Marcas competencia
+  const mLocs={};comp.forEach(r=>{if(!mLocs[r.marca])mLocs[r.marca]=new Set();mLocs[r.marca].add(r.local);});
+  const topMarcas=Object.entries(mLocs).sort((a,b)=>b[1].size-a[1].size).slice(0,6);
+
+  // Semana del filtro
+  const semLabel=document.getElementById('fSemana')?.options[document.getElementById('fSemana').selectedIndex]?.text||'Período seleccionado';
+  const fecha=new Date().toLocaleDateString('es-PY');
+
+  const NAV='152840'; // mv-navy
+  const BLUE='2a6aaa';
+  const SKY='5b9fd4';
+  const WHITE='FFFFFF';
+  const DARK='0c1d2e';
+  const MID='374151';
+  const GREY='f1f5f9';
+  const GREEN='047857';
+  const RED='b91c1c';
+  const AMBER='92400e';
+
+  const html=`<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<style>
+  @page{size:A4 landscape;margin:0}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:"Segoe UI",Calibri,sans-serif;background:#${NAV};color:#${WHITE};width:297mm;height:210mm;overflow:hidden}
+  .slide{width:297mm;height:210mm;position:relative;background:#${NAV};page-break-after:always;display:flex;flex-direction:column;padding:0}
+  /* ── Slide 1: Portada ── */
+  .cover{background:#${NAV};justify-content:center;padding:20mm 24mm}
+  .cover-bar{width:6mm;height:40mm;background:#${BLUE};border-radius:3px;margin-right:10mm;flex-shrink:0}
+  .cover-main{display:flex;align-items:flex-start}
+  .cover-wordmark{font-size:52pt;font-weight:800;letter-spacing:.06em;color:#${WHITE};line-height:1}
+  .cover-foods{font-size:24pt;font-weight:300;color:#${SKY};letter-spacing:.18em;text-transform:uppercase}
+  .cover-tag{font-size:10pt;color:rgba(255,255,255,.5);margin-top:6mm;letter-spacing:.12em;text-transform:uppercase}
+  .cover-period{margin-top:8mm;font-size:13pt;color:rgba(255,255,255,.7);font-weight:300}
+  .cover-title{font-size:15pt;font-weight:700;color:#${WHITE};margin-top:4mm;letter-spacing:.02em;text-transform:uppercase}
+  .footer{position:absolute;bottom:0;left:0;right:0;height:8mm;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:7pt;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase}
+  /* ── Slide 2: KPIs ── */
+  .slide-header{background:rgba(0,0,0,.25);padding:5mm 10mm 4mm;border-bottom:1px solid rgba(255,255,255,.08)}
+  .slide-title{font-size:20pt;font-weight:800;letter-spacing:.04em;color:#${WHITE}}
+  .slide-sub{font-size:9pt;color:rgba(255,255,255,.5);margin-top:1mm}
+  .kpi-row{display:flex;gap:5mm;padding:6mm 10mm;flex:1}
+  .kpi{flex:1;background:rgba(0,0,0,.25);border-radius:8px;padding:5mm 6mm;position:relative;overflow:hidden}
+  .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--ac,#${BLUE})}
+  .kpi-val{font-size:32pt;font-weight:900;color:#${WHITE};line-height:1;margin-top:4mm}
+  .kpi-lbl{font-size:8pt;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;margin-top:2mm}
+  .kpi-sub{font-size:8pt;color:rgba(255,255,255,.4);margin-top:1mm}
+  .alert-box{margin:0 10mm;padding:4mm 6mm;background:rgba(${diff!==null&&diff<0?'4,120,87':'185,28,28'},.18);border-left:4px solid #${diff!==null&&diff<0?GREEN:RED};border-radius:4px;font-size:9pt;color:rgba(255,255,255,.85)}
+  /* ── Slide 3: Precios ── */
+  .two-col{display:flex;flex:1;gap:0;overflow:hidden}
+  .col{flex:1;padding:5mm 8mm;overflow:hidden}
+  .col-title{font-size:9pt;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3mm}
+  .bar-row{display:flex;align-items:center;gap:3mm;margin-bottom:2.5mm}
+  .bar-label{font-size:7.5pt;color:rgba(255,255,255,.8);width:36mm;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar-wrap{flex:1;display:flex;flex-direction:column;gap:1.2mm}
+  .bar-track{height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+  .bar-fill-f{height:100%;background:#${BLUE};border-radius:3px}
+  .bar-fill-c{height:100%;background:#94a3b8;border-radius:3px}
+  .bar-vals{display:flex;justify-content:space-between;font-size:6.5pt}
+  .bar-val-f{color:#${SKY};font-weight:700}
+  .bar-val-c{color:#94a3b8}
+  .badge{display:inline-block;padding:1mm 3mm;border-radius:20px;font-size:7pt;font-weight:700}
+  .badge-green{background:rgba(4,120,87,.25);color:#6ee7b7}
+  .badge-red{background:rgba(185,28,28,.25);color:#fca5a5}
+  /* ── Slide 4: Marcas ── */
+  .marca-row{display:flex;align-items:center;gap:4mm;padding:2.5mm 0;border-bottom:1px solid rgba(255,255,255,.06)}
+  .marca-rank{width:8mm;text-align:center;font-size:8pt;font-weight:700;color:rgba(255,255,255,.4)}
+  .marca-name{flex:1;font-size:9pt;font-weight:600;color:#${WHITE}}
+  .marca-locs{font-size:8pt;color:#${SKY};width:20mm;text-align:right}
+  .marca-track{width:60mm;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+  .marca-fill{height:100%;background:#${BLUE};border-radius:3px}
+  .marca-threat{font-size:7pt;width:18mm;text-align:center}
+</style></head><body>
+
+<!-- SLIDE 1: PORTADA -->
+<div class="slide cover">
+  <div class="cover-main">
+    <div class="cover-bar"></div>
+    <div>
+      <div class="cover-wordmark">MINERVA</div>
+      <div class="cover-foods">FOODS</div>
+      <div class="cover-tag">Price Intelligence · +Marka · Informe Ejecutivo</div>
+      <div class="cover-period">Corte: ${fecha} &nbsp;|&nbsp; ${semLabel}</div>
+      <div class="cover-title">Análisis de Precios y Competencia</div>
+    </div>
+  </div>
+  <div class="footer">MINERVA FOODS · PRICE INTELLIGENCE · CONFIDENCIAL – USO INTERNO</div>
+</div>
+
+<!-- SLIDE 2: RESUMEN KPIs -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-title">RESUMEN EJECUTIVO — PRECIOS</div>
+    <div class="slide-sub">Período: ${semLabel} &nbsp;|&nbsp; ${fecha}</div>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi" style="--ac:#${BLUE}">
+      <div class="kpi-val">${conF.size}</div>
+      <div class="kpi-lbl">LOCALES CON MINERVA</div>
+      <div class="kpi-sub">de ${TOTAL} en universo total</div>
+    </div>
+    <div class="kpi" style="--ac:#${cobPct>=70?GREEN:cobPct>=40?AMBER:RED}">
+      <div class="kpi-val">${cobPct.toFixed(1)}%</div>
+      <div class="kpi-lbl">COBERTURA REAL</div>
+      <div class="kpi-sub">${cobPct>=70?'✓ Meta alcanzada':cobPct>=40?'⚠ Por debajo de meta':'✗ Acción requerida'}</div>
+    </div>
+    <div class="kpi" style="--ac:#${GREEN}">
+      <div class="kpi-val" style="font-size:22pt">Gs. ${pF?gs(pF):'—'}</div>
+      <div class="kpi-lbl">PRECIO MINERVA</div>
+      <div class="kpi-sub">promedio todos los cortes</div>
+    </div>
+    <div class="kpi" style="--ac:#94a3b8">
+      <div class="kpi-val" style="font-size:22pt">Gs. ${pC?gs(pC):'—'}</div>
+      <div class="kpi-lbl">PRECIO COMPETENCIA</div>
+      <div class="kpi-sub">${diff!==null?`Minerva ${diff<0?'más económica':'más cara'} · ${Math.abs(diff).toFixed(1)}%`:'promedio'}</div>
+    </div>
+    <div class="kpi" style="--ac:#${diff!==null&&diff<0?GREEN:diff!==null&&diff>0?RED:BLUE}">
+      <div class="kpi-val">${diff!==null?Math.abs(diff).toFixed(1)+'%':'—'}</div>
+      <div class="kpi-lbl">DIFERENCIAL</div>
+      <div class="kpi-sub">Minerva vs. Competencia</div>
+    </div>
+  </div>
+  ${diff!==null?`<div class="alert-box">
+    ${diff<0?'✅ Minerva posiciona precios por debajo del promedio de competencia en '+Math.abs(diff).toFixed(1)+'%. Ventaja competitiva de Gs. '+gs(Math.abs(Math.round((pF||0)-(pC||0))))+ ' por unidad.':'⚠ Precio Minerva se ubica '+diff.toFixed(1)+'% por encima del promedio de competencia. Gs. '+gs(Math.abs(Math.round((pF||0)-(pC||0))))+ ' de diferencia por unidad. Revisar estrategia de precios.'}
+  </div>`:''}
+  <div class="footer">MINERVA FOODS · PRICE INTELLIGENCE · ${fecha}</div>
+</div>
+
+<!-- SLIDE 3: COMPARATIVO POR CORTE -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-title">PRECIOS MINERVA VS COMPETENCIA — POR CORTE</div>
+    <div class="slide-sub">Gs. promedio · Top cortes · ${semLabel}</div>
+  </div>
+  <div class="two-col">
+    <div class="col">
+      <div class="col-title">Comparativo Minerva vs Competencia</div>
+      ${topCortes.map(r=>{
+        const maxP=Math.max(r.pF,r.pC);
+        const dStr=(r.dif>0?'+ ':'') + Math.abs(r.dif).toFixed(1)+'%';
+        const cls=r.dif<0?'badge-green':'badge-red';
+        return`<div class="bar-row">
+          <div class="bar-label" title="${r.k}">${r.k.length>22?r.k.slice(0,21)+'…':r.k}</div>
+          <div class="bar-wrap">
+            <div class="bar-track"><div class="bar-fill-f" style="width:${Math.round(r.pF/maxP*100)}%"></div></div>
+            <div class="bar-track"><div class="bar-fill-c" style="width:${Math.round(r.pC/maxP*100)}%"></div></div>
+          </div>
+          <div class="bar-vals" style="width:72mm">
+            <span class="bar-val-f">Gs. ${gs(r.pF)}</span>
+            <span class="bar-val-c">Gs. ${gs(r.pC)}</span>
+            <span class="badge ${cls}">${dStr}</span>
+          </div>
+        </div>`;
+      }).join('')}
+      <div style="display:flex;gap:6mm;margin-top:3mm">
+        <span style="display:flex;align-items:center;gap:2mm;font-size:7pt;color:rgba(255,255,255,.5)"><span style="width:12px;height:5px;background:#${BLUE};border-radius:3px;display:inline-block"></span>Minerva</span>
+        <span style="display:flex;align-items:center;gap:2mm;font-size:7pt;color:rgba(255,255,255,.5)"><span style="width:12px;height:5px;background:#94a3b8;border-radius:3px;display:inline-block"></span>Competencia</span>
+      </div>
+    </div>
+    <div class="col" style="border-left:1px solid rgba(255,255,255,.06)">
+      <div class="col-title">Precios Máximos y Mínimos</div>
+      <table style="width:100%;border-collapse:collapse;font-size:7.5pt">
+        <tr style="border-bottom:1px solid rgba(255,255,255,.1)">
+          <th style="text-align:left;padding:2mm 0;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;font-size:6.5pt">CORTE</th>
+          <th style="text-align:right;padding:2mm 0;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;font-size:6.5pt">MÍN.</th>
+          <th style="text-align:right;padding:2mm 0;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;font-size:6.5pt">PROM.</th>
+          <th style="text-align:right;padding:2mm 0;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;font-size:6.5pt">MÁX.</th>
+        </tr>
+        ${topCortes.map(r=>`<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+          <td style="padding:2mm 0;color:rgba(255,255,255,.8)">${r.k.length>18?r.k.slice(0,17)+'…':r.k}</td>
+          <td style="text-align:right;color:#6ee7b7;font-weight:600">Gs. ${cgMap[r.k]?gs(Math.min(...cgMap[r.k].f)):'—'}</td>
+          <td style="text-align:right;color:#${SKY};font-weight:700">Gs. ${gs(r.pF)}</td>
+          <td style="text-align:right;color:#fca5a5;font-weight:600">Gs. ${cgMap[r.k]?gs(Math.max(...cgMap[r.k].f)):'—'}</td>
+        </tr>`).join('')}
+      </table>
+    </div>
+  </div>
+  <div class="footer">MINERVA FOODS · PRICE INTELLIGENCE · ${fecha}</div>
+</div>
+
+<!-- SLIDE 4: MARCAS COMPETENCIA -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-title">COMPETENCIA — PRESENCIA Y PRECIOS POR MARCA</div>
+    <div class="slide-sub">${topMarcas.length} marcas detectadas · ordenadas por cobertura · ${semLabel}</div>
+  </div>
+  <div class="two-col">
+    <div class="col">
+      <div class="col-title">Presencia por Marca (Locales)</div>
+      ${topMarcas.map(([m,s],i)=>{
+        const mPrec=comp.filter(r=>r.marca===m).map(r=>r.precio).filter(Boolean);
+        const pm=avg(mPrec);const dif=pF&&pm?(pF-pm)/pm*100:null;
+        const maxLocs=topMarcas[0][1].size;
+        const amenaza=s.size>100?'🔴 ALTA':s.size>30?'🟡 MEDIA':'⚪ BAJA';
+        return`<div class="marca-row">
+          <div class="marca-rank">${i+1}</div>
+          <div class="marca-name">${m.length>22?m.slice(0,21)+'…':m}</div>
+          <div class="marca-track"><div class="marca-fill" style="width:${Math.round(s.size/maxLocs*100)}%"></div></div>
+          <div class="marca-locs">${s.size} loc.</div>
+          <div class="marca-threat">${amenaza}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="col" style="border-left:1px solid rgba(255,255,255,.06)">
+      <div class="col-title">Precio Promedio por Marca vs Minerva</div>
+      <table style="width:100%;border-collapse:collapse;font-size:7.5pt">
+        <tr style="border-bottom:1px solid rgba(255,255,255,.1)">
+          <th style="text-align:left;padding:2mm 0;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;font-size:6.5pt">MARCA</th>
+          <th style="text-align:right;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;font-size:6.5pt">PRECIO</th>
+          <th style="text-align:right;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;font-size:6.5pt">VS MINERVA</th>
+          <th style="text-align:right;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;font-size:6.5pt">DIF %</th>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,.1)">
+          <td style="padding:2mm 0;font-weight:800;color:#${SKY}">MINERVA</td>
+          <td style="text-align:right;color:#${SKY};font-weight:700">Gs. ${pF?gs(pF):'—'}</td>
+          <td style="text-align:right">—</td><td></td>
+        </tr>
+        ${topMarcas.map(([m,s])=>{
+          const mPrec=comp.filter(r=>r.marca===m).map(r=>r.precio).filter(Boolean);
+          const pm=avg(mPrec);const dif=pF&&pm?(pF-pm)/pm*100:null;
+          const difGs=pF&&pm?Math.round(pF-pm):null;
+          return`<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+            <td style="padding:2mm 0;color:rgba(255,255,255,.8)">${m.length>18?m.slice(0,17)+'…':m}</td>
+            <td style="text-align:right;color:rgba(255,255,255,.6)">Gs. ${pm?gs(pm):'—'}</td>
+            <td style="text-align:right;font-size:7pt;color:rgba(255,255,255,.5)">${difGs?'Gs. '+gs(Math.abs(difGs))+(difGs<0?' +caro':' +ec.'):'—'}</td>
+            <td style="text-align:right"><span class="badge ${dif!==null&&dif<-5?'badge-green':dif!==null&&dif>5?'badge-red':''}" style="font-size:6.5pt">${dif!==null?(dif>0?'+':'')+dif.toFixed(1)+'%':'—'}</span></td>
+          </tr>`;
+        }).join('')}
+      </table>
+    </div>
+  </div>
+  <div class="footer">MINERVA FOODS · PRICE INTELLIGENCE · ${fecha} · CONFIDENCIAL – USO INTERNO</div>
+</div>
+
+</body></html>`;
+
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`Minerva_Informe_Ejecutivo_${new Date().toISOString().slice(0,10)}.html`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  if(btn){btn.textContent='📄 Informe PDF';btn.disabled=false;}
+  setTimeout(()=>alert('✅ Informe descargado.\n\nAbrilo en Chrome → Ctrl+P → "Guardar como PDF" → Orientación Horizontal → Sin márgenes → PDF ejecutivo listo.'),200);
 }
 
 /* ═══════════════════════════════════════════════════════
