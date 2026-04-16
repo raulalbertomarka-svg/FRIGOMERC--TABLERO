@@ -75,7 +75,31 @@ body.dark{
   --mv-sky:#6aaac8;
   --mv-ice:#243647;
   --blue-light:#243647;
+
+  /* Table rows in dark */
+  --row-alt: #162030;
 }
+
+/* Dark mode specific overrides */
+body.dark .card-header{border-bottom-color:#243647}
+body.dark thead th{background:#141f2a;color:#5e7d93}
+body.dark tbody tr:nth-child(even) td{background:#141f2a}
+body.dark .chip-trigger{background:#18242f;border-color:#243647;color:#b8c8d5}
+body.dark .chip-dropdown{background:#18242f;border-color:#243647}
+body.dark .chip-dd-header{background:#141f2a;color:#5e7d93;border-bottom-color:#243647}
+body.dark .chip-item:hover{background:#1e2e3c}
+body.dark .chip-item.selected{background:#1e3a50}
+body.dark .mini-tab{background:#18242f;border-color:#243647;color:#5e7d93}
+body.dark .fbar select,body.dark .fbar input{background:#18242f;color:#ecf0f4;border-color:#243647}
+body.dark .sema-card .s-pct{color:inherit}
+body.dark .loc-name{color:#ecf0f4}
+body.dark .loc-stat .val{color:#ecf0f4}
+body.dark .search-wrap input{background:#18242f;color:#ecf0f4;border-color:#243647}
+body.dark .kpi-value{color:#ecf0f4}
+body.dark .kpi-label{color:#5e7d93}
+body.dark .kpi-sub{color:#5e7d93}
+body.dark .page-title{color:#ecf0f4}
+body.dark .page-subtitle{color:#5e7d93}
 html{scroll-behavior:smooth}
 body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text-hi);font-size:14px;line-height:1.5;min-height:100vh;transition:background .2s,color .2s}
 
@@ -348,6 +372,18 @@ body.dark .chip-tag{background:var(--mv-navy);color:var(--mv-sky);border-color:r
 </head>
 <body>
 
+<!-- ══ PDF LOADING OVERLAY ══ -->
+<div id="pdfOverlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(15,25,35,.85);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);align-items:center;justify-content:center;flex-direction:column;gap:20px">
+  <div style="background:#18242f;border:1px solid #2d4a63;border-radius:16px;padding:36px 48px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+    <div style="font-size:32px;margin-bottom:12px">📄</div>
+    <div style="font-size:18px;font-weight:700;color:#ecf0f4;letter-spacing:.04em;margin-bottom:6px">Generando Informe PDF</div>
+    <div style="font-size:12px;color:#5e7d93;letter-spacing:.06em;margin-bottom:20px">Preparando datos del período seleccionado…</div>
+    <div style="width:220px;height:3px;background:#243647;border-radius:2px;overflow:hidden;margin:0 auto">
+      <div id="pdfProgress" style="height:100%;width:0%;background:linear-gradient(90deg,#3d6a8a,#6aaac8);border-radius:2px;transition:width .4s ease"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ══ SPLASH SCREEN ══ -->
 <div id="splash">
   <div class="splash-logo-wrap">
@@ -521,7 +557,7 @@ body.dark .chip-tag{background:var(--mv-navy);color:var(--mv-sky);border-color:r
         <div class="card-header">
           <div><div class="card-title"><span>📊</span> Comparativo por Corte y Marca</div><div class="card-sub">Seleccioná las marcas y cortes para visualizar · Gs. promedio</div></div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <!-- Chip marcas -->
+            <!-- Chip marcas solamente -->
             <div class="chip-select" id="chipWrapP">
               <div class="chip-trigger" onclick="toggleChipDropdown('chipWrapP')">
                 <span class="chip-trigger-label" id="chipLabelP">Todas las marcas</span>
@@ -529,13 +565,10 @@ body.dark .chip-tag{background:var(--mv-navy);color:var(--mv-sky);border-color:r
               </div>
               <div class="chip-dropdown" id="chipDropP"></div>
             </div>
-            <!-- Chip cortes -->
-            <div class="chip-select" id="chipWrapCortes">
-              <div class="chip-trigger" onclick="toggleChipDropdown('chipWrapCortes')">
-                <span class="chip-trigger-label" id="chipLabelCortes">Todos los cortes</span>
-                <span class="chip-trigger-arrow">▾</span>
-              </div>
-              <div class="chip-dropdown" id="chipDropCortes"></div>
+            <!-- Hidden cortes chip (kept for JS compat) -->
+            <div id="chipWrapCortes" style="display:none">
+              <div id="chipDropCortes"></div>
+              <span id="chipLabelCortes"></span>
             </div>
           </div>
         </div>
@@ -1160,15 +1193,15 @@ function renderResumen(){
   const diff=pF&&pC?(pF-pC)/pC*100:null;
 
   document.getElementById('kpiGrid').innerHTML=`
-    ${kpiCard('📍','Locales Monitoreados',TOTAL,'universo total','#3b82f6','#eff6ff')}
-    <div class="kpi-card" style="--kpi-color:${cobPct>=70?'#10b981':cobPct>=40?'#f59e0b':'#ef4444'};--kpi-bg:${cobPct>=70?'#ecfdf5':cobPct>=40?'#fffbeb':'#fef2f2'}">
+    ${kpiCard('📍','Locales Monitoreados',TOTAL,'universo total','var(--mv-blue)','var(--mv-ice)')}
+    <div class="kpi-card" style="--kpi-color:${cobPct>=70?'var(--green)':cobPct>=40?'var(--amber)':'var(--red)'};--kpi-bg:${cobPct>=70?'var(--green-light)':cobPct>=40?'var(--amber-light)':'var(--red-light)'}">
       <div class="kpi-icon">${cobPct>=70?'✅':cobPct>=40?'⚠️':'🚨'}</div>
       <div class="kpi-label">COBERTURA REAL</div>
       <div class="kpi-value">${cobPct.toFixed(1)}%</div>
       <div class="kpi-sub">${conF.size} de ${TOTAL} con precio registrado</div>
       <span class="kpi-badge ${cobPct>=70?'badge-green':cobPct>=40?'badge-amber':'badge-red'}">${conF.size} locales</span>
     </div>
-    <div class="kpi-card" style="--kpi-color:#10b981;--kpi-bg:#ecfdf5">
+    <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-light)">
       <div class="kpi-icon">💰</div><div class="kpi-label">Precio Minerva</div>
       <div class="kpi-value" style="font-size:20px">Gs. ${pF?gs(pF):'—'}</div>
       <div class="kpi-sub">promedio todos los cortes</div>
@@ -1200,7 +1233,7 @@ function renderResumen(){
       const p=v.t?v.f/v.t*100:0;
       const col=p>=70?'#10b981':p>=40?'#f59e0b':'#ef4444';
       const catCol=CAT_COLORS[cat]||'#94a3b8';
-      return`<div style="background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:16px;border-top:3px solid ${catCol};text-align:center">
+      return`<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;border-top:3px solid ${catCol};text-align:center">
         <div style="font-size:10px;font-weight:700;color:var(--gray-500);text-transform:uppercase;margin-bottom:8px">${cat}</div>
         <div style="font-size:26px;font-weight:800;color:${col}">${p.toFixed(0)}%</div>
         <div style="font-size:11px;color:var(--gray-400);margin:4px 0">${v.f} / ${v.t} locales</div>
@@ -1229,7 +1262,7 @@ function renderDifPanel(data){
         <div style="font-size:22px;font-weight:800;color:var(--gray-900)">${pC?'Gs. '+gs(pC):'—'}</div>
       </div>
     </div>
-    <div style="background:${esEco?'#ecfdf5':'#fef2f2'};border:1px solid ${esEco?'#6ee7b7':'#fca5a5'};border-radius:var(--radius);padding:14px;text-align:center">
+    <div style="background:${esEco?'var(--green-light)':'var(--red-light)'};border:1px solid ${esEco?'var(--green)':'var(--red)'};border-radius:var(--radius);padding:14px;text-align:center">
       <div style="font-size:10px;font-weight:700;color:${esEco?'#047857':'#b91c1c'};text-transform:uppercase;margin-bottom:6px">Minerva es ${esEco?'más económico':'más caro'}</div>
       <div style="font-size:28px;font-weight:800;color:${esEco?'#10b981':'#ef4444'}">${difGs!==null?'Gs. '+gs(Math.abs(difGs)):'—'}</div>
       <div style="font-size:11px;color:${esEco?'#047857':'#b91c1c'};margin-top:4px">${difPct!==null?Math.abs(difPct).toFixed(1)+'% de diferencia':''}</div>
@@ -1313,7 +1346,7 @@ function renderTopCortes(data){
     const isTop=TOP_CORTES.includes(k);
     return`<tr style="${isTop?'font-weight:600':''}">
       <td>${k}${isTop?` <span class="tag tag-biggie" style="font-size:9px">TOP</span>`:''}</td>
-      <td style="font-weight:700;color:var(--blue)">${af?'Gs. '+gs(af):'—'}</td>
+      <td style="font-weight:700;color:var(--mv-blue)">${af?'Gs. '+gs(af):'—'}</td>
       <td>${ac?'Gs. '+gs(ac):'—'}</td>
       <td>${dPct!==null?diffBadge(dPct):'—'}</td>
       <td style="color:var(--gray-400)">${v.f.length+v.c.length}</td>
@@ -1333,7 +1366,7 @@ function renderPreciosPorCadena(){
   data2.forEach(r=>{const c=r.cadena;if(!cads[c])cads[c]={loc:new Set(),f:[],cm:{},tc:[]};cads[c].loc.add(r.local);if(r.tipo==='FRIGO'&&r.precio)cads[c].f.push(r.precio);if(r.tipo==='COMPETENCIA'&&r.precio){if(!cads[c].cm[r.marca])cads[c].cm[r.marca]=[];cads[c].cm[r.marca].push(r.precio);cads[c].tc.push(r.precio);}});
   const rows=Object.entries(cads).filter(([,d])=>d.f.length||d.tc.length).sort((a,b)=>b[1].loc.size-a[1].loc.size);
   const tb=document.getElementById('tblCadenaPrecio');if(!tb)return;
-  tb.innerHTML=rows.map((e,i)=>{const[ca,d]=e;const pf=avg(d.f),pc=avg(d.tc);const diff=pf&&pc?(pf-pc)/pc*100:null;const est=diff===null?'⚪ SIN DATOS':diff<-10?'🟢 VENTAJA':diff>5?'🔴 MÁS CARA':'🟡 COMPETITIVA';const bg=i%2?'var(--gray-50)':'#fff';return`<tr style="background:${bg}"><td style="font-weight:700">${ca}</td><td style="text-align:center">${d.loc.size} PDV</td><td style="font-weight:700;color:var(--blue)">${pf?'Gs. '+gs(pf):'—'}</td><td>${pc?'Gs. '+gs(pc):'—'}</td><td>${diff!==null?diffBadge(diff):'—'}</td><td>${est}</td></tr>`;}).join('')||'<tr><td colspan="6" class="empty">Sin datos</td></tr>';
+  tb.innerHTML=rows.map((e,i)=>{const[ca,d]=e;const pf=avg(d.f),pc=avg(d.tc);const diff=pf&&pc?(pf-pc)/pc*100:null;const est=diff===null?'⚪ SIN DATOS':diff<-10?'🟢 VENTAJA':diff>5?'🔴 MÁS CARA':'🟡 COMPETITIVA';const bg=i%2?'var(--bg)':'var(--bg-card)';return`<tr style="background:${bg}"><td style="font-weight:700">${ca}</td><td style="text-align:center">${d.loc.size} PDV</td><td style="font-weight:700;color:var(--mv-blue)">${pf?'Gs. '+gs(pf):'—'}</td><td>${pc?'Gs. '+gs(pc):'—'}</td><td>${diff!==null?diffBadge(diff):'—'}</td><td>${est}</td></tr>`;}).join('')||'<tr><td colspan="6" class="empty">Sin datos</td></tr>';
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1349,7 +1382,7 @@ function renderPreciosPorLocal(){
   const allMarcas=new Set();Object.values(lm).forEach(d=>Object.keys(d.comp).forEach(m=>allMarcas.add(m)));
   const topMarcas=[...allMarcas].sort((a,b)=>Object.values(lm).filter(d=>d.comp[a]).length-Object.values(lm).filter(d=>d.comp[b]).length).reverse().slice(0,5);
   const head=document.getElementById('localTblHead');
-  if(head)head.innerHTML=`<th>LOCAL</th><th>CADENA</th><th style="background:#eff6ff">MINERVA</th>${topMarcas.map(m=>`<th>${m}</th>`).join('')}<th>DIF. %</th>`;
+  if(head)head.innerHTML=`<th>LOCAL</th><th>CADENA</th><th style="background:var(--mv-ice)">MINERVA</th>${topMarcas.map(m=>`<th>${m}</th>`).join('')}<th>DIF. %</th>`;
   const rows=Object.entries(lm).sort((a,b)=>(avg(b[1].minerva)||0)-(avg(a[1].minerva)||0));
   const tbody=document.getElementById('tblLocalPrecios');if(!tbody)return;
   tbody.innerHTML=rows.map(([loc,d])=>{
@@ -1361,7 +1394,7 @@ function renderPreciosPorLocal(){
     return`<tr>
       <td style="font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${loc}">${loc}</td>
       <td><span class="tag tag-c">${info.CADENA||extractCadena(loc)}</span></td>
-      <td style="font-weight:700;color:var(--blue);background:#f8faff">${pm?'Gs. '+gs(pm):'—'}</td>
+      <td style="font-weight:700;color:var(--mv-blue);background:var(--mv-ice)">${pm?'Gs. '+gs(pm):'—'}</td>
       ${topMarcas.map(m=>`<td style="color:var(--gray-600)">${avg(d.comp[m]||[])?'Gs. '+gs(avg(d.comp[m])):'—'}</td>`).join('')}
       <td>${diff!==null?diffBadge(diff):'—'}</td>
     </tr>`;
@@ -1504,9 +1537,9 @@ function renderCompetencia(){
 
   // KPIs: Minerva + top 2 competidores
   document.getElementById('kpiComp').innerHTML=`
-    ${kpiCard('🏪','Minerva Presente',frigoCnt,'locales relevados','#3b82f6','#eff6ff')}
+    ${kpiCard('🏪','Minerva Presente',frigoCnt,'locales relevados','var(--mv-blue)','var(--mv-ice)')}
     ${todasMarcasComp.slice(0,2).map(([m,s],i)=>{const pM=avg(mPrecios[m]||[]);const dif=pMinerva&&pM?(pMinerva-pM)/pM*100:null;return`<div class="kpi-card" style="--kpi-color:${i===0?'#ef4444':'#f97316'};--kpi-bg:${i===0?'#fef2f2':'#fff7ed'}"><div class="kpi-icon">${i===0?'🥇':'🥈'}</div><div class="kpi-label">${m}</div><div class="kpi-value" style="font-size:22px">${s.size}</div><div class="kpi-sub">${pM?'Gs. '+gs(pM)+' '+(dif!==null?diffBadge(dif):''):''}</div></div>`;}).join('')}
-    ${kpiCard('⚔️','Competidores',todasMarcasComp.length,'marcas detectadas','#8b5cf6','#f5f3ff')}`;
+    ${kpiCard('⚔️','Competidores',todasMarcasComp.length,'marcas detectadas','var(--purple)','var(--purple-light)')}`;
 
   // Tabla completa — TODAS las marcas
   const th='style="padding:9px 12px;font-size:10px;color:var(--gray-500);font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--gray-200);text-align:';
@@ -1528,7 +1561,7 @@ function renderCompetencia(){
         const difGs=pMinerva&&pM?Math.round(pMinerva-pM):null;
         const topCg=Object.entries(mCortes[m]||{}).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([c])=>c);
         const amenaza=locs.size>100?'🔴 ALTA':locs.size>30?'🟡 MEDIA':'⚪ BAJA';
-        const bg=i%2?'var(--gray-50)':'#fff';
+        const bg=i%2?'var(--bg)':'var(--bg-card)';
         return`<tr style="background:${bg}">
           <td style="padding:9px 12px;font-weight:700;color:var(--gray-800)">${m}</td>
           <td style="padding:9px 12px;text-align:center;font-weight:700;color:${locs.size>100?'var(--red)':locs.size>30?'var(--amber)':'var(--gray-600)'}">${locs.size}</td>
@@ -1606,9 +1639,9 @@ function renderCobertura(){
   const cats={};
   LOCALES_MASTER.forEach(l=>{if(!cats[l.CATEGORIA])cats[l.CATEGORIA]={t:0,f:0};cats[l.CATEGORIA].t++;if(conF.has(l.LOCAL))cats[l.CATEGORIA].f++;});
   document.getElementById('kpiCob').innerHTML=`
-    ${kpiCard('📊','Cobertura Total',cobPct.toFixed(1)+'%',conF.size+' de '+TOTAL+' locales','#3b82f6','#eff6ff')}
-    ${kpiCard('✅','Con Minerva',conF.size,'locales con precio registrado','#10b981','#ecfdf5')}
-    ${kpiCard('🚨','Sin Minerva',TOTAL-conF.size,'locales a activar','#ef4444','#fef2f2')}`;
+    ${kpiCard('📊','Cobertura Total',cobPct.toFixed(1)+'%',conF.size+' de '+TOTAL+' locales','var(--mv-blue)','var(--mv-ice)')}
+    ${kpiCard('✅','Con Minerva',conF.size,'locales con precio registrado','var(--green)','var(--green-light)')}
+    ${kpiCard('🚨','Sin Minerva',TOTAL-conF.size,'locales a activar','var(--red)','var(--red-light)')}`;
 
   // Semáforo por categoría
   const sortedCats=Object.keys(cats).sort((a,b)=>{const p={'Cluster H':1,'Categoria A':2,'Biggie':3,'Categoria B':4,'Categoria C':5};return(p[a]||9)-(p[b]||9);});
@@ -1632,8 +1665,8 @@ function renderTablaCob(){
   filtered.forEach(r=>{if(!r.local)return;if(!lm[r.local])lm[r.local]={f:[],c:[]};if(r.tipo==='FRIGO'&&r.precio)lm[r.local].f.push(r.precio);else if(r.tipo==='COMPETENCIA'&&r.precio)lm[r.local].c.push(r.precio);});
   const list=LOCALES_MASTER.filter(l=>!cat||l.CATEGORIA===cat).sort((a,b)=>{const ha=(lm[a.LOCAL]||{f:[]}).f.length>0,hb=(lm[b.LOCAL]||{f:[]}).f.length>0;return ha===hb?0:ha?1:-1;});
   const tb=document.getElementById('tblCobCat');if(!tb)return;
-  tb.innerHTML=list.slice(0,300).map((l,i)=>{const d=lm[l.LOCAL]||{f:[],c:[]};const pf=avg(d.f),pc=avg(d.c);const hasF=d.f.length>0;const bg=i%2?'var(--gray-50)':'#fff';
-    return`<tr style="background:${bg}${hasF?'':';border-left:3px solid #ef4444'}"><td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.LOCAL}</td><td style="font-size:11px">${l.CADENA}</td><td>${catTag(l.CATEGORIA)}</td><td><span class="tag ${hasF?'tag-ok':'tag-alert'}">${hasF?'✓ PRESENTE':'✗ SIN PRECIO'}</span></td><td style="font-weight:700;color:var(--blue)">${pf?'Gs. '+gs(pf):'—'}</td><td>${pc?'Gs. '+gs(pc):'—'}</td></tr>`;
+  tb.innerHTML=list.slice(0,300).map((l,i)=>{const d=lm[l.LOCAL]||{f:[],c:[]};const pf=avg(d.f),pc=avg(d.c);const hasF=d.f.length>0;const bg=i%2?'var(--bg)':'var(--bg-card)';
+    return`<tr style="background:${bg}${hasF?'':';border-left:3px solid #ef4444'}"><td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.LOCAL}</td><td style="font-size:11px">${l.CADENA}</td><td>${catTag(l.CATEGORIA)}</td><td><span class="tag ${hasF?'tag-ok':'tag-alert'}">${hasF?'✓ PRESENTE':'✗ SIN PRECIO'}</span></td><td style="font-weight:700;color:var(--mv-blue)">${pf?'Gs. '+gs(pf):'—'}</td><td>${pc?'Gs. '+gs(pc):'—'}</td></tr>`;
   }).join('')||'<tr><td colspan="6" class="empty">Sin datos</td></tr>';
 }
 
@@ -1704,10 +1737,10 @@ function renderPedidos(){
 
   // ── KPIs ──
   document.getElementById('kpiPedidos').innerHTML=`
-    ${kpiCard('📦','KG TOTAL',(totKg/1000).toFixed(1)+'T','volumen pedido','#3b82f6','#eff6ff')}
-    ${kpiCard('💰','SELL-OUT EST.','Gs. '+gs(totSellout),'kg × precio relevado','#10b981','#ecfdf5')}
-    ${kpiCard('🏪','LOCALES',Object.keys(byL).length,'con pedido','#f59e0b','#fffbeb')}
-    ${kpiCard('🥩','CORTES',Object.keys(byC).length,'productos distintos','#8b5cf6','#f5f3ff')}`;
+    ${kpiCard('📦','KG TOTAL',(totKg/1000).toFixed(1)+'T','volumen pedido','var(--mv-blue)','var(--mv-ice)')}
+    ${kpiCard('💰','SELL-OUT EST.','Gs. '+gs(totSellout),'kg × precio relevado','var(--green)','var(--green-light)')}
+    ${kpiCard('🏪','LOCALES',Object.keys(byL).length,'con pedido','var(--amber)','var(--amber-light)')}
+    ${kpiCard('🥩','CORTES',Object.keys(byC).length,'productos distintos','var(--purple)','var(--purple-light)')}`;
 
   // ── Gráfico Top cortes ──
   const tpC=Object.entries(byC).sort((a,b)=>b[1].kg-a[1].kg).slice(0,12);
@@ -1739,10 +1772,10 @@ function renderPedidos(){
   // ── Sell-Out por cadena ──
   const cadRows=Object.entries(byCad).sort((a,b)=>b[1].sellout-a[1].sellout);
   document.getElementById('tblSelloutCadena').innerHTML=cadRows.map((e,i)=>{
-    const[cad,d]=e;const pRef=avg(d.precios);const bg=i%2?'var(--gray-50)':'#fff';
+    const[cad,d]=e;const pRef=avg(d.precios);const bg=i%2?'var(--bg)':'var(--bg-card)';
     return`<tr style="background:${bg}">
       <td style="font-weight:700">${cad}</td>
-      <td style="text-align:center;font-weight:700;color:#0ea5e9">${Math.round(d.kg).toLocaleString('es-PY')} kg</td>
+      <td style="text-align:center;font-weight:700;color:var(--mv-blue)">${Math.round(d.kg).toLocaleString('es-PY')} kg</td>
       <td style="text-align:center">${d.pd}</td>
       <td style="text-align:center">${pRef?'Gs. '+gs(pRef):'—'}</td>
       <td style="text-align:center;font-weight:700;color:${d.sellout?'#10b981':'var(--gray-400)'}">${d.sellout?'Gs. '+gs(d.sellout):'—'}</td>
@@ -1762,19 +1795,19 @@ function renderPedidos(){
     const pc=avg((filtered.filter(r=>r.local===loc&&r.tipo==='COMPETENCIA')).map(r=>r.precio).filter(Boolean));
     const diff=pF&&pc?(pF-pc)/pc*100:null;
     let oTag;
-    if(!pF&&d.kg>3000)oTag='<span style="background:#fef2f2;color:#b91c1c;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px">📋 RELEVAR</span>';
-    else if(!pF)oTag='<span style="background:#f1f5f9;color:#94a3b8;font-size:10px;padding:3px 8px;border-radius:12px">SIN PRECIO</span>';
-    else if(diff!==null&&diff<-10)oTag='<span style="background:#ecfdf5;color:#047857;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px">✓ COMPETITIVO</span>';
-    else if(diff!==null&&diff>5)oTag='<span style="background:#fffbeb;color:#b45309;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px">⚠ PRECIO ALTO</span>';
-    else oTag='<span style="background:#f0fdf4;color:#166534;font-size:10px;padding:3px 8px;border-radius:12px">✓ OK</span>';
-    const bg=i%2?'var(--gray-50)':'#fff';
+    if(!pF&&d.kg>3000)oTag='<span style="background:var(--red-light);color:#b91c1c;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px">📋 RELEVAR</span>';
+    else if(!pF)oTag='<span style="background:var(--bg);color:#94a3b8;font-size:10px;padding:3px 8px;border-radius:12px">SIN PRECIO</span>';
+    else if(diff!==null&&diff<-10)oTag='<span style="background:var(--green-light);color:#047857;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px">✓ COMPETITIVO</span>';
+    else if(diff!==null&&diff>5)oTag='<span style="background:var(--amber-light);color:#b45309;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px">⚠ PRECIO ALTO</span>';
+    else oTag='<span style="background:var(--green-light);color:#166534;font-size:10px;padding:3px 8px;border-radius:12px">✓ OK</span>';
+    const bg=i%2?'var(--bg)':'var(--bg-card)';
     return`<tr style="background:${bg}">
       <td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${loc}">${loc}</td>
       <td><span class="tag tag-c">${info?info.CADENA:d.cad||'—'}</span></td>
-      <td style="text-align:center;font-weight:700;color:#0ea5e9">${Math.round(d.kg).toLocaleString('es-PY')}</td>
+      <td style="text-align:center;font-weight:700;color:var(--mv-blue)">${Math.round(d.kg).toLocaleString('es-PY')}</td>
       <td style="text-align:center">${d.pd}</td>
       <td style="text-align:center">${d.ct.size}</td>
-      <td style="font-weight:700;color:var(--blue)">${pF?'Gs. '+gs(pF):'—'}</td>
+      <td style="font-weight:700;color:var(--mv-blue)">${pF?'Gs. '+gs(pF):'—'}</td>
       <td style="font-weight:700;color:#10b981">${d.sellout?'Gs. '+gs(d.sellout):'—'}</td>
       <td>${oTag}</td>
     </tr>`;
@@ -1785,10 +1818,10 @@ function renderPedidos(){
   document.getElementById('tblCorteDetalle').innerHTML=corteRows.slice(0,50).map((e,i)=>{
     const[corte,d]=e;
     const pRef=avg(precioMinervaPorCorte[corte]||[]);
-    const bg=i%2?'var(--gray-50)':'#fff';
+    const bg=i%2?'var(--bg)':'var(--bg-card)';
     return`<tr style="background:${bg}">
       <td style="font-weight:600">${corte}</td>
-      <td style="text-align:center;font-weight:700;color:#0ea5e9">${Math.round(d.kg).toLocaleString('es-PY')} kg</td>
+      <td style="text-align:center;font-weight:700;color:var(--mv-blue)">${Math.round(d.kg).toLocaleString('es-PY')} kg</td>
       <td style="text-align:center">${d.loc.size}</td>
       <td style="text-align:center">${pRef?'Gs. '+gs(pRef):'—'}</td>
       <td style="text-align:center;font-weight:700;color:#10b981">${d.sellout?'Gs. '+gs(d.sellout):'—'}</td>
@@ -1807,9 +1840,9 @@ function renderLocales(){
   const q=(document.getElementById('searchLoc')?.value||'').toLowerCase();
 
   document.getElementById('kpiLocales').innerHTML=`
-    ${kpiCard('📍','Total Locales',LOCALES_MASTER.length,'en directorio','#3b82f6','#eff6ff')}
-    ${kpiCard('✅','Con Minerva',conF.size,'presencia registrada','#10b981','#ecfdf5')}
-    ${kpiCard('🚨','Sin Minerva',LOCALES_MASTER.length-conF.size,'sin precio','#ef4444','#fef2f2')}`;
+    ${kpiCard('📍','Total Locales',LOCALES_MASTER.length,'en directorio','var(--mv-blue)','var(--mv-ice)')}
+    ${kpiCard('✅','Con Minerva',conF.size,'presencia registrada','var(--green)','var(--green-light)')}
+    ${kpiCard('🚨','Sin Minerva',LOCALES_MASTER.length-conF.size,'sin precio','var(--red)','var(--red-light)')}`;
 
   const lm={};
   filtered.forEach(r=>{if(!r.local)return;if(!lm[r.local])lm[r.local]={frigo:[],comp:[],marcas:new Set(),fechas:new Set()};if(r.tipo==='FRIGO'&&r.precio)lm[r.local].frigo.push(r.precio);if(r.tipo==='COMPETENCIA'&&r.precio){lm[r.local].comp.push(r.precio);lm[r.local].marcas.add(r.marca);}if(r.fecha)lm[r.local].fechas.add(r.fecha);});
@@ -1869,12 +1902,12 @@ function renderRespuestas(){
   const rows=q?RESP_ROWS.filter(r=>r.some(c=>c.toLowerCase().includes(q))):RESP_ROWS;
 
   document.getElementById('kpiResp').innerHTML=`
-    ${kpiCard('📋','Total Respuestas',RESP_ROWS.length,'registros','#3b82f6','#eff6ff')}
-    ${kpiCard('🔍','Columnas',RESP_HEADERS.length,'en el formulario','#8b5cf6','#f5f3ff')}
-    ${kpiCard('🔎','Filtradas',rows.length,'coincidencias','#10b981','#ecfdf5')}`;
+    ${kpiCard('📋','Total Respuestas',RESP_ROWS.length,'registros','var(--mv-blue)','var(--mv-ice)')}
+    ${kpiCard('🔍','Columnas',RESP_HEADERS.length,'en el formulario','var(--purple)','var(--purple-light)')}
+    ${kpiCard('🔎','Filtradas',rows.length,'coincidencias','var(--green)','var(--green-light)')}`;
 
   document.getElementById('respTblHead').innerHTML=RESP_HEADERS.map(h=>`<th>${h}</th>`).join('');
-  document.getElementById('tblResp').innerHTML=rows.slice(0,300).map((r,i)=>`<tr style="background:${i%2?'var(--gray-50)':'#fff'}">${RESP_HEADERS.map((_,j)=>`<td>${r[j]||'—'}</td>`).join('')}</tr>`).join('')||'<tr><td colspan="'+RESP_HEADERS.length+'" class="empty">Sin resultados</td></tr>';
+  document.getElementById('tblResp').innerHTML=rows.slice(0,300).map((r,i)=>`<tr style="background:${i%2?'var(--bg)':'var(--bg-card)'}">${RESP_HEADERS.map((_,j)=>`<td>${r[j]||'—'}</td>`).join('')}</tr>`).join('')||'<tr><td colspan="'+RESP_HEADERS.length+'" class="empty">Sin resultados</td></tr>';
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2031,25 +2064,30 @@ function exportExcelFull(){
     h1.push([r.fecha||'',sem,r.local||'',r.cadena||'',cat,r.cg||'',r.marca||'',r.tipo||'',r.precio||'',r.oferta||'']);
   });
 
-  // ── Hoja 2: Precios Máximos y Mínimos por Corte ──
-  const cgMap={};
-  data.forEach(r=>{
-    if(!r.cg||!r.precio||r.precio>=400000)return;
-    if(!cgMap[r.cg])cgMap[r.cg]={f:[],allC:[]};
-    if(r.tipo==='FRIGO') cgMap[r.cg].f.push(r.precio);
-    else cgMap[r.cg].allC.push(r.precio);
+  // ── Hoja 2: Precios Máximos y Mínimos por Corte — usa TODOS los datos (RAW completo) ──
+  // Usar RAW completo, no solo filtered, para garantizar todos los cortes
+  const allData=RAW.length?RAW:data;
+  const cgMapXL={};
+  allData.forEach(r=>{
+    if(!r.cg||!r.precio)return;
+    const p=Number(r.precio);
+    if(!p||p<=0||p>=500000)return; // filtro amplio
+    if(!cgMapXL[r.cg])cgMapXL[r.cg]={f:[],allC:[]};
+    if(r.tipo==='FRIGO') cgMapXL[r.cg].f.push(p);
+    else cgMapXL[r.cg].allC.push(p);
   });
   const h2=[
     ['CORTE',
      'MINERVA Promedio Gs.','MINERVA Mínimo Gs.','MINERVA Máximo Gs.',
      'COMPETENCIA Promedio Gs.','COMPETENCIA Mínimo Gs.','COMPETENCIA Máximo Gs.',
-     'Diferencial % (Min-Max)','Registros Minerva','Registros Competencia']
+     'Diferencial % (Minerva vs Comp)','Registros Minerva','Registros Competencia']
   ];
-  const topFirst=TOP_CORTES.filter(c=>cgMap[c]);
-  const others=Object.keys(cgMap).filter(c=>!TOP_CORTES.includes(c)).sort();
-  [...topFirst,...others].forEach(k=>{
-    const v=cgMap[k];
-    if(!v.f.length&&!v.allC.length)return;
+  // Ordenar: TOP_CORTES primero, luego el resto alfabético
+  const topFirstXL=TOP_CORTES.filter(c=>cgMapXL[c]);
+  const othersXL=Object.keys(cgMapXL).filter(c=>!TOP_CORTES.includes(c)).sort();
+  const allCortesXL=[...topFirstXL,...othersXL];
+  allCortesXL.forEach(k=>{
+    const v=cgMapXL[k];
     const pf=v.f.length?avg(v.f):null;
     const pfMin=v.f.length?Math.min(...v.f):null;
     const pfMax=v.f.length?Math.max(...v.f):null;
@@ -2058,15 +2096,15 @@ function exportExcelFull(){
     const pcMax=v.allC.length?Math.max(...v.allC):null;
     const dif=pf&&pc?((pf-pc)/pc*100).toFixed(2):'N/A';
     h2.push([k,
-      pf?Math.round(pf):'—', pfMin?pfMin:'—', pfMax?pfMax:'—',
-      pc?Math.round(pc):'—', pcMin?pcMin:'—', pcMax?pcMax:'—',
+      pf?Math.round(pf):'',  pfMin||'',  pfMax||'',
+      pc?Math.round(pc):'',  pcMin||'',  pcMax||'',
       dif, v.f.length, v.allC.length
     ]);
   });
 
-  // ── Hoja 3: Precios de Oferta — Reporte Lunes ──
+  // ── Hoja 3: Precios de Oferta — Reporte Lunes (usa RAW completo) ──
   const ofMap={};
-  data.filter(r=>r.oferta&&r.tipo==='FRIGO'&&r.oferta<400000).forEach(r=>{
+  allData.filter(r=>r.oferta&&r.tipo==='FRIGO'&&Number(r.oferta)>0&&Number(r.oferta)<500000).forEach(r=>{
     if(!ofMap[r.cg])ofMap[r.cg]={precios:[],ofertas:[],locales:new Set(),fechas:new Set(),semanas:new Set()};
     ofMap[r.cg].precios.push(r.precio);
     ofMap[r.cg].ofertas.push(r.oferta);
@@ -2118,6 +2156,13 @@ function exportPDF(){
   const btn=document.getElementById('btnPDF');
   if(btn){btn.textContent='⏳ Generando…';btn.disabled=true;}
 
+  // Mostrar overlay de generación
+  const ov=document.getElementById('pdfOverlay');
+  const pg=document.getElementById('pdfProgress');
+  if(ov){ov.style.display='flex';}
+  const pdfStep=(pct)=>{if(pg)pg.style.width=pct+'%';};
+  pdfStep(10);
+
   const data=filtered.length?filtered:RAW;
   const frigo=data.filter(r=>r.tipo==='FRIGO');
   const comp =data.filter(r=>r.tipo==='COMPETENCIA');
@@ -2128,6 +2173,7 @@ function exportPDF(){
   const TOTAL=LOCALES_MASTER.length||401;
   const cobPct=TOTAL?conF.size/TOTAL*100:0;
 
+  pdfStep(25);
   // Cortes con datos Minerva y competencia
   const cgMap={};
   data.forEach(r=>{
@@ -2155,6 +2201,7 @@ function exportPDF(){
     });
   const topCortes=allCortes.slice(0,10);
 
+  pdfStep(50);
   // Marcas competencia
   const mMap={};
   comp.forEach(r=>{
@@ -2165,6 +2212,7 @@ function exportPDF(){
   const topMarcas=Object.entries(mMap).sort((a,b)=>b[1].locs.size-a[1].locs.size).slice(0,8);
   const maxLocs=topMarcas[0]?.[1].locs.size||1;
 
+  pdfStep(70);
   // Cobertura por categoría
   const cats={};
   LOCALES_MASTER.forEach(l=>{
@@ -2543,6 +2591,7 @@ function exportPDF(){
 
 </body></html>`;
 
+  pdfStep(90);
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -2551,7 +2600,12 @@ function exportPDF(){
   document.body.appendChild(a);a.click();
   setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
 
-  if(btn){btn.textContent='📄 Informe PDF';btn.disabled=false;}
+  pdfStep(100);
+  setTimeout(()=>{
+    if(ov)ov.style.display='none';
+    if(pg)pg.style.width='0%';
+    if(btn){btn.textContent='📄 Informe PDF';btn.disabled=false;}
+  }, 600);
   setTimeout(()=>alert(
     '✅ Informe descargado.\n\n'+
     'Para convertir a PDF:\n'+
@@ -2562,7 +2616,7 @@ function exportPDF(){
     '5. Márgenes: Ninguno\n'+
     '6. ✓ Activar "Gráficos de fondo"\n'+
     '7. Guardar'
-  ),300);
+  ), 900);
 }
 
 
